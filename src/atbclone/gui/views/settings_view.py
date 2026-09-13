@@ -297,7 +297,9 @@ class SettingsView(toga.Box):
                 loop.call_soon_threadsafe(_ui_update)
 
             def _on_status(status_key: str) -> None:
-                if status_key == "verifying":
+                if status_key == "downloading":
+                    msg = t("update_downloading", pct=0)
+                elif status_key == "verifying":
                     msg = t("update_verifying")
                 elif status_key == "installing":
                     msg = t("update_installing")
@@ -324,7 +326,7 @@ class SettingsView(toga.Box):
             os._exit(0)
 
         except Exception as e:
-            logger.exception(f"Update error: {e}")
+            logger.exception("Update error")
             self.lbl_update_status.text = t("update_error", err=str(e))
             self.btn_check_update.enabled = True
 

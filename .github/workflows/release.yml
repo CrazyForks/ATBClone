@@ -109,26 +109,6 @@ jobs:
             echo "APPLE_SIGNING_READY=0" >> $GITHUB_ENV
           fi
 
-      - name: Build & Package Release Artifacts (arm64)
-        run: |
-          BUILD_OPTS=("--version" "${VERSION}")
-          if [[ "${APPLE_SIGNING_READY}" == "1" ]]; then
-            if [[ -n "${{ secrets.APPLE_ID }}" && -n "${{ secrets.APPLE_PASSWORD }}" ]]; then
-              BUILD_OPTS+=("--notarize")
-            fi
-          else
-            BUILD_OPTS+=("--skip-sign")
-          fi
-
-          bash scripts/build_release_packages.sh "${BUILD_OPTS[@]}"
-        env:
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          LDFLAGS: "-Wl,-needed_framework,AppKit"
-          MACOSX_DEPLOYMENT_TARGET: "12.0"
-
       - name: Extract Release Notes
         run: |
           python3 - << 'PY_EOF'
@@ -156,6 +136,26 @@ jobs:
           output_file.write_text(notes_content, encoding="utf-8")
           print(f"Extracted release notes ({len(notes_content)} bytes)")
           PY_EOF
+
+      - name: Build & Package Release Artifacts (arm64)
+        run: |
+          BUILD_OPTS=("--version" "${VERSION}")
+          if [[ "${APPLE_SIGNING_READY}" == "1" ]]; then
+            if [[ -n "${{ secrets.APPLE_ID }}" && -n "${{ secrets.APPLE_PASSWORD }}" ]]; then
+              BUILD_OPTS+=("--notarize")
+            fi
+          else
+            BUILD_OPTS+=("--skip-sign")
+          fi
+
+          bash scripts/build_release_packages.sh "${BUILD_OPTS[@]}"
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          LDFLAGS: "-Wl,-needed_framework,AppKit"
+          MACOSX_DEPLOYMENT_TARGET: "12.0"
 
       - name: Upload Workflow Artifacts
         if: always()

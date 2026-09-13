@@ -158,11 +158,13 @@ def test_download_and_install_success(tmp_path):
         mount_dir.mkdir()
         mock_app = mount_dir / "ATBClone.app"
         mock_app.mkdir()
+        fake_target = tmp_path / "FakeATBClone.app"
 
         with (
             patch("requests.get", return_value=mock_resp),
             patch.object(service, "_get_download_path", return_value=dmg_file),
-            patch.object(service, "MOUNT_POINT", mount_dir),
+            patch.object(service, "_get_target_app_path", return_value=fake_target),
+            patch("atbclone.gui.services.update_service.tempfile.mkdtemp", return_value=str(mount_dir)),
             patch("subprocess.run", side_effect=mock_subprocess_run),
         ):
             await service.download_and_install(info)
@@ -210,13 +212,15 @@ def test_download_and_install_with_status_callbacks(tmp_path):
         mount_dir.mkdir()
         mock_app = mount_dir / "ATBClone.app"
         mock_app.mkdir()
+        fake_target = tmp_path / "FakeATBClone.app"
 
         status_records = []
 
         with (
             patch("requests.get", return_value=mock_resp),
             patch.object(service, "_get_download_path", return_value=dmg_file),
-            patch.object(service, "MOUNT_POINT", mount_dir),
+            patch.object(service, "_get_target_app_path", return_value=fake_target),
+            patch("atbclone.gui.services.update_service.tempfile.mkdtemp", return_value=str(mount_dir)),
             patch("subprocess.run", side_effect=mock_subprocess_run),
         ):
             await service.download_and_install(

@@ -7,6 +7,7 @@ import platform
 import shutil
 import subprocess
 import sys
+import tempfile
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
@@ -67,13 +68,16 @@ def _get_configured_proxies() -> dict[str, str] | None:
 
 class UpdateService:
     LATEST_JSON_URL = "https://github.com/aitobox/ATBClone/releases/latest/download/latest.json"
-    MOUNT_POINT = Path("/tmp/atbclone_update_mnt")
 
     def _get_platform_key(self) -> str:
         machine = platform.machine().lower()
         if machine in ("arm64", "aarch64"):
             return "darwin-aarch64"
         return "darwin-x86_64"
+
+    def _get_arch_suffix(self) -> str:
+        machine = platform.machine().lower()
+        return "arm64" if machine in ("arm64", "aarch64") else "x86_64"
 
     def _get_target_app_path(self) -> Path:
         """Resolve the currently running .app bundle or fallback to /Applications/ATBClone.app."""
@@ -86,7 +90,8 @@ class UpdateService:
     def _get_download_path(self, version: str) -> Path:
         downloads_dir = Path.home() / "Downloads"
         downloads_dir.mkdir(parents=True, exist_ok=True)
-        return downloads_dir / f"ATBClone-{version}-arm64.dmg"
+        arch = self._get_arch_suffix()
+        return downloads_dir / f"ATBClone-{version}-{arch}.dmg"
 
     async def check_for_updates(self) -> UpdateInfo | None:
         """Fetch latest.json and return UpdateInfo if remote is strictly newer than current version."""
@@ -178,32 +183,27 @@ class UpdateService:
                         dmg_path.unlink(missing_ok=True)
                     raise ValueError(f"Checksum mismatch! Expected {info.checksum}, got {computed_sha}")
 
-                # 3. Mount DMG
+                # 3. Mount DMG — use a unique temp directory to avoid race conditions
                 if on_status:
                     on_status("installing")
-                logger.info(f"Attaching disk image at {self.MOUNT_POINT}...")
-                if self.MOUNT_POINT.exists():
-                    subprocess.run(
-                        ["hdiutil", "detach", str(self.MOUNT_POINT), "-force"],
-                        capture_output=True,
-                        check=False,
-                    )
-                self.MOUNT_POINT.mkdir(parents=True, exist_ok=True)
+                mount_point = Path(tempfile.mkdtemp(prefix="atbclone_upd_"))
+                logger.info(f"Attaching disk image at {mount_point}...")
 
                 attach_res = subprocess.run(
-                    ["hdiutil", "attach", str(dmg_path), "-nobrowse", "-mountpoint", str(self.MOUNT_POINT)],
+                    ["hdiutil", "attach", str(dmg_path), "-nobrowse", "-mountpoint", str(mount_point)],
                     capture_output=True,
                     text=True,
                     check=False,
                 )
                 if attach_res.returncode != 0:
+                    shutil.rmtree(mount_point, ignore_errors=True)
                     raise RuntimeError(f"Failed to mount DMG: {attach_res.stderr.strip()}")
 
                 try:
                     # 4. Locate .app inside mount point
-                    apps = list(self.MOUNT_POINT.glob("*.app"))
+                    apps = list(mount_point.glob("*.app"))
                     if not apps:
-                        raise RuntimeError(f"No .app bundle found inside {self.MOUNT_POINT}")
+                        raise RuntimeError(f"No .app bundle found inside {mount_point}")
                     src_app = apps[0]
                     logger.info(f"Found source app in DMG: {src_app}")
 
@@ -249,13 +249,14 @@ class UpdateService:
 
                     logger.info(f"Successfully installed update to {target_app_path}")
                 finally:
-                    # 8. Detach mount
+                    # 8. Detach mount and remove the temp mount directory
                     logger.info("Detaching disk image...")
                     subprocess.run(
-                        ["hdiutil", "detach", str(self.MOUNT_POINT), "-force"],
+                        ["hdiutil", "detach", str(mount_point), "-force"],
                         capture_output=True,
                         check=False,
                     )
+                    shutil.rmtree(mount_point, ignore_errors=True)
 
             finally:
                 # 9. Cleanup temporary DMG
