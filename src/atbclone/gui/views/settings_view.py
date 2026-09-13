@@ -1,33 +1,34 @@
 """Settings View for managing global application preferences and data directories."""
 
 import asyncio
-import subprocess
+import os
 import platform
-import sys
+import subprocess
 from pathlib import Path
-from typing import Optional
+
 import toga
 from toga.style import Pack
-from toga.style.pack import COLUMN, ROW, CENTER
+from toga.style.pack import CENTER, COLUMN, ROW
 
 from atbclone import __version__
 from atbclone.core.config import (
-    DEFAULT_ATB_DIR,
     DEFAULT_APPS_DIR,
+    DEFAULT_ATB_DIR,
     DEFAULT_DATA_DIR,
     get_config_value,
     set_config_value,
 )
 from atbclone.core.i18n import (
-    t,
     SUPPORTED_LANGUAGES_MAP,
+    detect_system_language,
     get_configured_language,
     save_configured_language,
     set_language,
-    detect_system_language,
+    t,
 )
 from atbclone.core.logger import get_logger
 from atbclone.gui.components.top_bar import TopHeaderBar
+from atbclone.gui.services.update_service import UpdateService
 from atbclone.gui.theme import Theme
 from atbclone.gui.windows.release_notes import ReleaseNotesWindow
 from atbclone.validation import (
@@ -43,7 +44,7 @@ logger = get_logger("gui.settings")
 class SettingsView(toga.Box):
     """Global preferences panel including Finder directory reveal, language preferences, and default configs."""
 
-    def __init__(self, app: Optional[toga.App] = None):
+    def __init__(self, app: toga.App | None = None):
         super().__init__(style=Pack(direction=COLUMN, flex=1, background_color=Theme.BG_WINDOW))
         self.app_instance = app
 
@@ -216,16 +217,39 @@ class SettingsView(toga.Box):
         inner_info.add(toga.Label(t("settings_label_python", ver=platform.python_version(), arch=platform.machine()), style=Pack(font_size=12.5, color=Theme.TEXT_MUTED, margin_bottom=4)))
         inner_info.add(toga.Label(t("settings_label_os", ver=platform.mac_ver()[0] or 'macOS'), style=Pack(font_size=12.5, color=Theme.TEXT_MUTED, margin_bottom=12)))
 
+        row_about_btns = toga.Box(style=Pack(direction=ROW, align_items=CENTER, margin_bottom=6))
+
         self.btn_release_notes = toga.Button(
             t("settings_btn_release_notes"),
             on_press=self.on_open_release_notes,
+            style=Pack(height=30, margin_right=8, font_size=13),
+        )
+        row_about_btns.add(self.btn_release_notes)
+
+        self.btn_check_update = toga.Button(
+            t("settings_btn_check_update"),
+            on_press=self.on_check_update,
             style=Pack(height=30, font_size=13),
         )
-        inner_info.add(self.btn_release_notes)
+        row_about_btns.add(self.btn_check_update)
+        inner_info.add(row_about_btns)
+
+        self.lbl_update_status = toga.Label(
+            "",
+            style=Pack(font_size=12, color=Theme.TEXT_MUTED, margin_top=4),
+        )
+        inner_info.add(self.lbl_update_status)
+
+        self.lbl_update_url = toga.Label(
+            UpdateService.LATEST_JSON_URL,
+            style=Pack(font_size=10.5, color=Theme.TEXT_MUTED, margin_top=2),
+        )
+        inner_info.add(self.lbl_update_url)
         card_info.add(inner_info)
         content_box.add(card_info)
 
-        self.release_notes_window: Optional[ReleaseNotesWindow] = None
+        self.release_notes_window: ReleaseNotesWindow | None = None
+        self.update_service = UpdateService()
         self._on_proxy_toggle(self.switch_proxy)
 
     def _on_proxy_toggle(self, widget: toga.Switch) -> None:
@@ -247,6 +271,70 @@ class SettingsView(toga.Box):
         """Open or focus the ReleaseNotesWindow."""
         self.release_notes_window = ReleaseNotesWindow()
         self.release_notes_window.show()
+
+    async def on_check_update(self, widget: toga.Button) -> None:
+        """Handle Check for Updates button press."""
+        self.btn_check_update.enabled = False
+        self.lbl_update_status.text = t("update_checking")
+        logger.info("User initiated check for updates")
+
+        try:
+            info = await self.update_service.check_for_updates()
+            if not info:
+                self.lbl_update_status.text = t("update_already_latest", ver=__version__)
+                self.btn_check_update.enabled = True
+                return
+
+            self.lbl_update_status.text = t("update_found", ver=info.version)
+            logger.info(f"Update found: v{info.version}, starting download and install")
+
+            loop = asyncio.get_running_loop()
+
+            def _on_progress(downloaded: int, total: int) -> None:
+                if total > 0:
+                    pct = int(downloaded * 100 / total)
+                    msg = t("update_downloading", pct=pct)
+                else:
+                    msg = t("update_downloading", pct=0)
+
+                def _ui_update():
+                    self.lbl_update_status.text = msg
+
+                loop.call_soon_threadsafe(_ui_update)
+
+            def _on_status(status_key: str) -> None:
+                if status_key == "downloading":
+                    msg = t("update_downloading", pct=0)
+                elif status_key == "verifying":
+                    msg = t("update_verifying")
+                elif status_key == "installing":
+                    msg = t("update_installing")
+                else:
+                    return
+
+                def _ui_status():
+                    self.lbl_update_status.text = msg
+
+                loop.call_soon_threadsafe(_ui_status)
+
+            await self.update_service.download_and_install(
+                info,
+                on_progress=_on_progress,
+                on_status=_on_status,
+            )
+
+            self.lbl_update_status.text = t("update_done_title")
+            if self.app_instance and hasattr(self.app_instance, "main_window"):
+                await self.app_instance.main_window.info_dialog(
+                    t("update_done_title"),
+                    t("update_done_msg", ver=info.version),
+                )
+            os._exit(0)
+
+        except Exception as e:
+            logger.exception("Update error")
+            self.lbl_update_status.text = t("update_error", err=str(e))
+            self.btn_check_update.enabled = True
 
     def _on_language_changed(self, widget: toga.Selection):
         if widget.value is None:
@@ -371,7 +459,10 @@ class SettingsView(toga.Box):
             pwd = self.input_proxy_pass.value or ""
             proxy_dict["username"] = user
             try:
-                from atbclone.core.keychain import save_default_proxy_password, delete_default_proxy_password
+                from atbclone.core.keychain import (
+                    delete_default_proxy_password,
+                    save_default_proxy_password,
+                )
                 if pwd:
                     save_default_proxy_password(pwd)
                 else:

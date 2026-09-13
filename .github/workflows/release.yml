@@ -109,26 +109,6 @@ jobs:
             echo "APPLE_SIGNING_READY=0" >> $GITHUB_ENV
           fi
 
-      - name: Build & Package Release Artifacts (arm64)
-        run: |
-          BUILD_OPTS=("--version" "${VERSION}")
-          if [[ "${APPLE_SIGNING_READY}" == "1" ]]; then
-            if [[ -n "${{ secrets.APPLE_ID }}" && -n "${{ secrets.APPLE_PASSWORD }}" ]]; then
-              BUILD_OPTS+=("--notarize")
-            fi
-          else
-            BUILD_OPTS+=("--skip-sign")
-          fi
-
-          bash scripts/build_release_packages.sh "${BUILD_OPTS[@]}"
-        env:
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          LDFLAGS: "-Wl,-needed_framework,AppKit"
-          MACOSX_DEPLOYMENT_TARGET: "12.0"
-
       - name: Extract Release Notes
         run: |
           python3 - << 'PY_EOF'
@@ -157,6 +137,26 @@ jobs:
           print(f"Extracted release notes ({len(notes_content)} bytes)")
           PY_EOF
 
+      - name: Build & Package Release Artifacts (arm64)
+        run: |
+          BUILD_OPTS=("--version" "${VERSION}")
+          if [[ "${APPLE_SIGNING_READY}" == "1" ]]; then
+            if [[ -n "${{ secrets.APPLE_ID }}" && -n "${{ secrets.APPLE_PASSWORD }}" ]]; then
+              BUILD_OPTS+=("--notarize")
+            fi
+          else
+            BUILD_OPTS+=("--skip-sign")
+          fi
+
+          bash scripts/build_release_packages.sh "${BUILD_OPTS[@]}"
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          LDFLAGS: "-Wl,-needed_framework,AppKit"
+          MACOSX_DEPLOYMENT_TARGET: "12.0"
+
       - name: Upload Workflow Artifacts
         if: always()
         uses: actions/upload-artifact@v4
@@ -166,6 +166,7 @@ jobs:
             dist/ATBCloneCli-${{ env.VERSION }}-arm64.tar.gz
             dist/ATBClone-${{ env.VERSION }}-arm64.dmg
             dist/checksums.txt
+            dist/latest.json
           if-no-files-found: ignore
 
       - name: Create or Update GitHub Release
@@ -173,6 +174,7 @@ jobs:
           CLI_PKG="dist/ATBCloneCli-${VERSION}-arm64.tar.gz"
           GUI_PKG="dist/ATBClone-${VERSION}-arm64.dmg"
           CHECKSUMS="dist/checksums.txt"
+          MANIFEST="dist/latest.json"
 
           if [[ ! -f "${CLI_PKG}" || ! -f "${GUI_PKG}" ]]; then
             echo "[-] Error: Expected release assets not found in dist/." >&2
@@ -208,7 +210,7 @@ jobs:
           ASSETS_UPLOADED=0
           for attempt in {1..5}; do
             echo "Asset upload attempt $attempt/5..."
-            if gh release upload "${TAG_NAME}" "${CLI_PKG}" "${GUI_PKG}" "${CHECKSUMS}" --clobber; then
+            if gh release upload "${TAG_NAME}" "${CLI_PKG}" "${GUI_PKG}" "${CHECKSUMS}" "${MANIFEST}" --clobber; then
               ASSETS_UPLOADED=1
               echo "[✔] Release assets uploaded successfully."
               break
