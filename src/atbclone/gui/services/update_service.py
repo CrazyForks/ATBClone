@@ -2,8 +2,11 @@
 
 import asyncio
 import hashlib
+import os
+import platform
 import shutil
 import subprocess
+import sys
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
@@ -36,11 +39,49 @@ def _parse_version(v: str) -> tuple[int, ...]:
     return tuple(parts)
 
 
+def _get_configured_proxies() -> dict[str, str] | None:
+    """Retrieve user-configured proxy settings from application preferences."""
+    try:
+        from atbclone.core.config import get_config_value
+
+        cfg_proxy = get_config_value("default_proxy", {})
+        if cfg_proxy.get("enabled"):
+            ptype = cfg_proxy.get("type", "http")
+            host = cfg_proxy.get("host", "127.0.0.1")
+            port = cfg_proxy.get("port", 7890)
+            user = cfg_proxy.get("username", "")
+
+            pwd = None
+            if user:
+                from atbclone.core.keychain import get_default_proxy_password
+
+                pwd = get_default_proxy_password()
+
+            auth = f"{user}:{pwd}@" if user and pwd else (f"{user}@" if user else "")
+            proxy_url = f"{ptype}://{auth}{host}:{port}"
+            return {"http": proxy_url, "https": proxy_url}
+    except (KeyError, ValueError, OSError, TypeError) as e:
+        logger.debug(f"Could not load configured proxy: {e}")
+    return None
+
+
 class UpdateService:
     LATEST_JSON_URL = "https://github.com/aitobox/ATBClone/releases/latest/download/latest.json"
-    PLATFORM_KEY = "darwin-aarch64"
     MOUNT_POINT = Path("/tmp/atbclone_update_mnt")
-    TARGET_APP_PATH = Path("/Applications/ATBClone.app")
+
+    def _get_platform_key(self) -> str:
+        machine = platform.machine().lower()
+        if machine in ("arm64", "aarch64"):
+            return "darwin-aarch64"
+        return "darwin-x86_64"
+
+    def _get_target_app_path(self) -> Path:
+        """Resolve the currently running .app bundle or fallback to /Applications/ATBClone.app."""
+        p = Path(sys.executable).resolve()
+        for parent in p.parents:
+            if parent.suffix == ".app":
+                return parent
+        return Path("/Applications/ATBClone.app")
 
     def _get_download_path(self, version: str) -> Path:
         downloads_dir = Path.home() / "Downloads"
@@ -52,8 +93,9 @@ class UpdateService:
         loop = asyncio.get_running_loop()
 
         def _fetch():
-            logger.info(f"Checking for updates from {self.LATEST_JSON_URL}...")
-            resp = requests.get(self.LATEST_JSON_URL, timeout=10)
+            proxies = _get_configured_proxies()
+            logger.info(f"Checking for updates from {self.LATEST_JSON_URL} (proxy={bool(proxies)})...")
+            resp = requests.get(self.LATEST_JSON_URL, timeout=10, proxies=proxies)
             resp.raise_for_status()
             data = resp.json()
 
@@ -63,12 +105,15 @@ class UpdateService:
 
             logger.info(f"Version check: current={__version__} ({curr_ver}), remote={remote_ver_str} ({remote_ver})")
             if remote_ver > curr_ver:
-                platform_info = data.get("platforms", {}).get(self.PLATFORM_KEY, {})
+                platforms = data.get("platforms", {})
+                plat_key = self._get_platform_key()
+                platform_info = platforms.get(plat_key) or platforms.get("darwin-aarch64", {})
+
                 download_url = platform_info.get("url", "")
                 checksum = platform_info.get("checksum", "").strip()
 
                 if not download_url or not checksum:
-                    raise ValueError(f"Missing download URL or checksum for platform '{self.PLATFORM_KEY}'")
+                    raise ValueError(f"Missing download URL or checksum for platform '{plat_key}'")
 
                 return UpdateInfo(
                     version=remote_ver_str,
@@ -85,17 +130,23 @@ class UpdateService:
         self,
         info: UpdateInfo,
         on_progress: Callable[[int, int], None] | None = None,
+        on_status: Callable[[str], None] | None = None,
     ) -> None:
-        """Download DMG, verify checksum, mount, ditto install to /Applications, detach, and cleanup."""
+        """Download DMG, verify checksum, mount, ditto install to target .app, detach, and cleanup."""
         loop = asyncio.get_running_loop()
 
         def _worker():
             dmg_path = self._get_download_path(info.version)
-            logger.info(f"Downloading update from {info.download_url} to {dmg_path}...")
+            target_app_path = self._get_target_app_path()
+            proxies = _get_configured_proxies()
+            logger.info(f"Downloading update from {info.download_url} to {dmg_path} (target={target_app_path})...")
 
             # 1. Streaming Download
+            if on_status:
+                on_status("downloading")
+
             try:
-                with requests.get(info.download_url, stream=True, timeout=30) as r:
+                with requests.get(info.download_url, stream=True, timeout=30, proxies=proxies) as r:
                     r.raise_for_status()
                     total_size = int(r.headers.get("content-length", 0))
                     downloaded = 0
@@ -109,6 +160,8 @@ class UpdateService:
                                     on_progress(downloaded, total_size)
 
                 # 2. SHA256 Verification
+                if on_status:
+                    on_status("verifying")
                 logger.info("Verifying SHA256 checksum...")
                 hasher = hashlib.sha256()
                 with open(dmg_path, "rb") as f:
@@ -126,6 +179,8 @@ class UpdateService:
                     raise ValueError(f"Checksum mismatch! Expected {info.checksum}, got {computed_sha}")
 
                 # 3. Mount DMG
+                if on_status:
+                    on_status("installing")
                 logger.info(f"Attaching disk image at {self.MOUNT_POINT}...")
                 if self.MOUNT_POINT.exists():
                     subprocess.run(
@@ -152,10 +207,10 @@ class UpdateService:
                     src_app = apps[0]
                     logger.info(f"Found source app in DMG: {src_app}")
 
-                    # 5. Move existing /Applications/ATBClone.app to Trash
-                    if self.TARGET_APP_PATH.exists():
-                        logger.info(f"Moving {self.TARGET_APP_PATH} to Trash via osascript...")
-                        script = f'tell application "Finder" to move POSIX file "{self.TARGET_APP_PATH}" to trash'
+                    # 5. Move existing .app to Trash or move aside
+                    if target_app_path.exists():
+                        logger.info(f"Moving {target_app_path} to Trash via osascript...")
+                        script = f'tell application "Finder" to move POSIX file "{target_app_path}" to trash'
                         trash_res = subprocess.run(
                             ["osascript", "-e", script],
                             capture_output=True,
@@ -163,13 +218,20 @@ class UpdateService:
                             check=False,
                         )
                         if trash_res.returncode != 0:
-                            logger.warning(f"osascript trash failed ({trash_res.stderr.strip()}), falling back to direct removal")
-                            shutil.rmtree(self.TARGET_APP_PATH, ignore_errors=True)
+                            logger.warning(f"osascript trash failed ({trash_res.stderr.strip()}), moving aside")
+                            temp_backup = Path(f"/tmp/ATBClone_old_{os.getpid()}.app")
+                            if temp_backup.exists():
+                                shutil.rmtree(temp_backup, ignore_errors=True)
+                            try:
+                                target_app_path.rename(temp_backup)
+                                shutil.rmtree(temp_backup, ignore_errors=True)
+                            except OSError:
+                                shutil.rmtree(target_app_path, ignore_errors=True)
 
                     # 6. Ditto install new .app
-                    logger.info(f"Installing {src_app} to {self.TARGET_APP_PATH} via ditto...")
+                    logger.info(f"Installing {src_app} to {target_app_path} via ditto...")
                     ditto_res = subprocess.run(
-                        ["ditto", str(src_app), str(self.TARGET_APP_PATH)],
+                        ["ditto", str(src_app), str(target_app_path)],
                         capture_output=True,
                         text=True,
                         check=False,
@@ -177,9 +239,17 @@ class UpdateService:
                     if ditto_res.returncode != 0:
                         raise RuntimeError(f"Failed to ditto install application: {ditto_res.stderr.strip()}")
 
-                    logger.info("Successfully installed update to /Applications/ATBClone.app")
+                    # 7. Strip quarantine attribute to avoid Gatekeeper warning
+                    subprocess.run(
+                        ["xattr", "-cr", str(target_app_path)],
+                        capture_output=True,
+                        text=True,
+                        check=False,
+                    )
+
+                    logger.info(f"Successfully installed update to {target_app_path}")
                 finally:
-                    # 7. Detach mount
+                    # 8. Detach mount
                     logger.info("Detaching disk image...")
                     subprocess.run(
                         ["hdiutil", "detach", str(self.MOUNT_POINT), "-force"],
@@ -188,7 +258,7 @@ class UpdateService:
                     )
 
             finally:
-                # 8. Cleanup temporary DMG
+                # 9. Cleanup temporary DMG
                 if dmg_path.exists():
                     try:
                         dmg_path.unlink()

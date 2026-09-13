@@ -2,34 +2,33 @@
 
 import asyncio
 import os
-import subprocess
 import platform
-import sys
+import subprocess
 from pathlib import Path
-from typing import Optional
+
 import toga
 from toga.style import Pack
-from toga.style.pack import COLUMN, ROW, CENTER
+from toga.style.pack import CENTER, COLUMN, ROW
 
 from atbclone import __version__
-from atbclone.gui.services.update_service import UpdateInfo, UpdateService
 from atbclone.core.config import (
-    DEFAULT_ATB_DIR,
     DEFAULT_APPS_DIR,
+    DEFAULT_ATB_DIR,
     DEFAULT_DATA_DIR,
     get_config_value,
     set_config_value,
 )
 from atbclone.core.i18n import (
-    t,
     SUPPORTED_LANGUAGES_MAP,
+    detect_system_language,
     get_configured_language,
     save_configured_language,
     set_language,
-    detect_system_language,
+    t,
 )
 from atbclone.core.logger import get_logger
 from atbclone.gui.components.top_bar import TopHeaderBar
+from atbclone.gui.services.update_service import UpdateService
 from atbclone.gui.theme import Theme
 from atbclone.gui.windows.release_notes import ReleaseNotesWindow
 from atbclone.validation import (
@@ -45,7 +44,7 @@ logger = get_logger("gui.settings")
 class SettingsView(toga.Box):
     """Global preferences panel including Finder directory reveal, language preferences, and default configs."""
 
-    def __init__(self, app: Optional[toga.App] = None):
+    def __init__(self, app: toga.App | None = None):
         super().__init__(style=Pack(direction=COLUMN, flex=1, background_color=Theme.BG_WINDOW))
         self.app_instance = app
 
@@ -243,7 +242,7 @@ class SettingsView(toga.Box):
         card_info.add(inner_info)
         content_box.add(card_info)
 
-        self.release_notes_window: Optional[ReleaseNotesWindow] = None
+        self.release_notes_window: ReleaseNotesWindow | None = None
         self.update_service = UpdateService()
         self._on_proxy_toggle(self.switch_proxy)
 
@@ -297,7 +296,24 @@ class SettingsView(toga.Box):
 
                 loop.call_soon_threadsafe(_ui_update)
 
-            await self.update_service.download_and_install(info, on_progress=_on_progress)
+            def _on_status(status_key: str) -> None:
+                if status_key == "verifying":
+                    msg = t("update_verifying")
+                elif status_key == "installing":
+                    msg = t("update_installing")
+                else:
+                    return
+
+                def _ui_status():
+                    self.lbl_update_status.text = msg
+
+                loop.call_soon_threadsafe(_ui_status)
+
+            await self.update_service.download_and_install(
+                info,
+                on_progress=_on_progress,
+                on_status=_on_status,
+            )
 
             self.lbl_update_status.text = t("update_done_title")
             if self.app_instance and hasattr(self.app_instance, "main_window"):
@@ -308,7 +324,7 @@ class SettingsView(toga.Box):
             os._exit(0)
 
         except Exception as e:
-            logger.error(f"Update error: {e}", exc_info=True)
+            logger.exception(f"Update error: {e}")
             self.lbl_update_status.text = t("update_error", err=str(e))
             self.btn_check_update.enabled = True
 
@@ -435,7 +451,10 @@ class SettingsView(toga.Box):
             pwd = self.input_proxy_pass.value or ""
             proxy_dict["username"] = user
             try:
-                from atbclone.core.keychain import save_default_proxy_password, delete_default_proxy_password
+                from atbclone.core.keychain import (
+                    delete_default_proxy_password,
+                    save_default_proxy_password,
+                )
                 if pwd:
                     save_default_proxy_password(pwd)
                 else:

@@ -175,3 +175,79 @@ def test_download_and_install_success(tmp_path):
         assert not dmg_file.exists()
 
     asyncio.run(_test())
+
+
+def test_download_and_install_with_status_callbacks(tmp_path):
+    async def _test():
+        service = UpdateService()
+        test_content = b"content"
+        test_sha = hashlib.sha256(test_content).hexdigest()
+
+        info = UpdateInfo(
+            version="2.0.0",
+            notes="Notes",
+            pub_date="2026-09-13T00:00:00Z",
+            checksum=test_sha,
+            download_url="https://example.com/ATBClone-2.0.0-arm64.dmg",
+        )
+
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.headers = {"Content-Length": str(len(test_content))}
+        mock_resp.iter_content.return_value = [test_content]
+        mock_resp.__enter__.return_value = mock_resp
+        mock_resp.__exit__.return_value = None
+
+        commands_run = []
+        def mock_subprocess_run(cmd, *args, **kwargs):
+            commands_run.append(cmd)
+            res = MagicMock()
+            res.returncode = 0
+            return res
+
+        dmg_file = tmp_path / "test.dmg"
+        mount_dir = tmp_path / "mnt"
+        mount_dir.mkdir()
+        mock_app = mount_dir / "ATBClone.app"
+        mock_app.mkdir()
+
+        status_records = []
+
+        with (
+            patch("requests.get", return_value=mock_resp),
+            patch.object(service, "_get_download_path", return_value=dmg_file),
+            patch.object(service, "MOUNT_POINT", mount_dir),
+            patch("subprocess.run", side_effect=mock_subprocess_run),
+        ):
+            await service.download_and_install(
+                info,
+                on_status=status_records.append,
+            )
+
+        assert "downloading" in status_records
+        assert "verifying" in status_records
+        assert "installing" in status_records
+        assert any(c[0] == "xattr" and c[1] == "-cr" for c in commands_run)
+
+    asyncio.run(_test())
+
+
+def test_configured_proxy_resolution():
+    from atbclone.gui.services.update_service import _get_configured_proxies
+
+    with patch("atbclone.core.config.get_config_value", return_value={"enabled": False}):
+        assert _get_configured_proxies() is None
+
+    with (
+        patch("atbclone.core.config.get_config_value", return_value={
+            "enabled": True,
+            "type": "socks5",
+            "host": "127.0.0.1",
+            "port": 1080,
+            "username": "user",
+        }),
+        patch("atbclone.core.keychain.get_default_proxy_password", return_value="pass123"),
+    ):
+        proxies = _get_configured_proxies()
+        assert proxies is not None
+        assert "socks5://user:pass123@127.0.0.1:1080" in proxies["https"]

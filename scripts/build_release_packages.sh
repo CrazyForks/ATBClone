@@ -252,8 +252,10 @@ MANIFEST_FILE="dist/latest.json"
 echo ""
 echo "==> Generating latest.json update manifest..."
 PUB_DATE=$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")
+TAG_NAME="${TAG_NAME:-v${TARGET_VERSION}}"
 export TARGET_VERSION
 export PUB_DATE
+export TAG_NAME
 python3 - << 'PY_EOF'
 import hashlib
 import json
@@ -261,6 +263,7 @@ import os
 from pathlib import Path
 
 version = os.environ["TARGET_VERSION"]
+tag_name = os.environ.get("TAG_NAME", f"v{version}")
 pub_date = os.environ["PUB_DATE"]
 dmg_path = Path(f"dist/ATBClone-{version}-arm64.dmg")
 notes_path = Path("dist/release_notes.md")
@@ -275,7 +278,7 @@ data = {
     "platforms": {
         "darwin-aarch64": {
             "checksum": sha256,
-            "url": f"https://github.com/aitobox/ATBClone/releases/download/v{version}/ATBClone-{version}-arm64.dmg",
+            "url": f"https://github.com/aitobox/ATBClone/releases/download/{tag_name}/ATBClone-{version}-arm64.dmg",
         }
     },
 }
