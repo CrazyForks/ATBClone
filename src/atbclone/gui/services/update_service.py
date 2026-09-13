@@ -1,13 +1,13 @@
 """Update Service for checking and installing ATBClone updates from GitHub Releases."""
 
 import asyncio
-from dataclasses import dataclass
 import hashlib
-import os
-from pathlib import Path
 import shutil
 import subprocess
-from typing import Callable, Optional
+from collections.abc import Callable
+from dataclasses import dataclass
+from pathlib import Path
+
 import requests
 
 from atbclone import __version__
@@ -47,7 +47,7 @@ class UpdateService:
         downloads_dir.mkdir(parents=True, exist_ok=True)
         return downloads_dir / f"ATBClone-{version}-arm64.dmg"
 
-    async def check_for_updates(self) -> Optional[UpdateInfo]:
+    async def check_for_updates(self) -> UpdateInfo | None:
         """Fetch latest.json and return UpdateInfo if remote is strictly newer than current version."""
         loop = asyncio.get_running_loop()
 
@@ -84,7 +84,7 @@ class UpdateService:
     async def download_and_install(
         self,
         info: UpdateInfo,
-        on_progress: Optional[Callable[[int, int], None]] = None,
+        on_progress: Callable[[int, int], None] | None = None,
     ) -> None:
         """Download DMG, verify checksum, mount, ditto install to /Applications, detach, and cleanup."""
         loop = asyncio.get_running_loop()
@@ -128,13 +128,18 @@ class UpdateService:
                 # 3. Mount DMG
                 logger.info(f"Attaching disk image at {self.MOUNT_POINT}...")
                 if self.MOUNT_POINT.exists():
-                    subprocess.run(["hdiutil", "detach", str(self.MOUNT_POINT), "-force"], capture_output=True)
+                    subprocess.run(
+                        ["hdiutil", "detach", str(self.MOUNT_POINT), "-force"],
+                        capture_output=True,
+                        check=False,
+                    )
                 self.MOUNT_POINT.mkdir(parents=True, exist_ok=True)
 
                 attach_res = subprocess.run(
                     ["hdiutil", "attach", str(dmg_path), "-nobrowse", "-mountpoint", str(self.MOUNT_POINT)],
                     capture_output=True,
                     text=True,
+                    check=False,
                 )
                 if attach_res.returncode != 0:
                     raise RuntimeError(f"Failed to mount DMG: {attach_res.stderr.strip()}")
@@ -151,7 +156,12 @@ class UpdateService:
                     if self.TARGET_APP_PATH.exists():
                         logger.info(f"Moving {self.TARGET_APP_PATH} to Trash via osascript...")
                         script = f'tell application "Finder" to move POSIX file "{self.TARGET_APP_PATH}" to trash'
-                        trash_res = subprocess.run(["osascript", "-e", script], capture_output=True, text=True)
+                        trash_res = subprocess.run(
+                            ["osascript", "-e", script],
+                            capture_output=True,
+                            text=True,
+                            check=False,
+                        )
                         if trash_res.returncode != 0:
                             logger.warning(f"osascript trash failed ({trash_res.stderr.strip()}), falling back to direct removal")
                             shutil.rmtree(self.TARGET_APP_PATH, ignore_errors=True)
@@ -162,6 +172,7 @@ class UpdateService:
                         ["ditto", str(src_app), str(self.TARGET_APP_PATH)],
                         capture_output=True,
                         text=True,
+                        check=False,
                     )
                     if ditto_res.returncode != 0:
                         raise RuntimeError(f"Failed to ditto install application: {ditto_res.stderr.strip()}")
@@ -170,7 +181,11 @@ class UpdateService:
                 finally:
                     # 7. Detach mount
                     logger.info("Detaching disk image...")
-                    subprocess.run(["hdiutil", "detach", str(self.MOUNT_POINT), "-force"], capture_output=True)
+                    subprocess.run(
+                        ["hdiutil", "detach", str(self.MOUNT_POINT), "-force"],
+                        capture_output=True,
+                        check=False,
+                    )
 
             finally:
                 # 8. Cleanup temporary DMG
@@ -178,7 +193,7 @@ class UpdateService:
                     try:
                         dmg_path.unlink()
                         logger.info("Removed temporary DMG")
-                    except Exception as e:
+                    except OSError as e:
                         logger.warning(f"Failed to remove temp DMG: {e}")
 
         await loop.run_in_executor(None, _worker)

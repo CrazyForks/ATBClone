@@ -1,8 +1,8 @@
 """Tests for auto-update i18n translation keys."""
 
 import pytest
-from atbclone.core.i18n import MESSAGES, SUPPORTED_LANGUAGES, t, set_language
 
+from atbclone.core.i18n import MESSAGES, SUPPORTED_LANGUAGES, set_language, t
 
 REQUIRED_KEYS = [
     "settings_btn_check_update",

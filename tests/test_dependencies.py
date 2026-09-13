@@ -1,7 +1,7 @@
 """Test project dependencies declarations."""
 
-from pathlib import Path
 import tomllib
+from pathlib import Path
 
 
 def test_requests_dependency_declared():

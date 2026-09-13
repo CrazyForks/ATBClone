@@ -3,7 +3,6 @@
 import hashlib
 import json
 from pathlib import Path
-import pytest
 
 
 def generate_manifest(dist_dir: Path, version: str, pub_date: str) -> Path:

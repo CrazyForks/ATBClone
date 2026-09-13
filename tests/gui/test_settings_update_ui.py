@@ -1,13 +1,10 @@
 """Tests for SettingsView check update UI integration."""
 
 import asyncio
-from unittest.mock import AsyncMock, patch
-import pytest
-import toga
+from unittest.mock import AsyncMock
 
 from atbclone import __version__
 from atbclone.core.i18n import set_language, t
-from atbclone.gui.services.update_service import UpdateInfo
 from atbclone.gui.views.settings_view import SettingsView
 
 

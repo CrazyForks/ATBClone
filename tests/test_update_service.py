@@ -2,12 +2,15 @@
 
 import asyncio
 import hashlib
-import json
-from pathlib import Path
 from unittest.mock import MagicMock, patch
+
 import pytest
 
-from atbclone.gui.services.update_service import UpdateInfo, UpdateService, _parse_version
+from atbclone.gui.services.update_service import (
+    UpdateInfo,
+    UpdateService,
+    _parse_version,
+)
 
 
 def test_parse_version():
@@ -76,9 +79,11 @@ def test_check_for_updates_already_latest():
 def test_check_for_updates_request_error():
     async def _test():
         service = UpdateService()
-        with patch("requests.get", side_effect=Exception("Connection refused")):
-            with pytest.raises(Exception, match="Connection refused"):
-                await service.check_for_updates()
+        with (
+            patch("requests.get", side_effect=Exception("Connection refused")),
+            pytest.raises(Exception, match="Connection refused"),
+        ):
+            await service.check_for_updates()
 
     asyncio.run(_test())
 
@@ -105,10 +110,12 @@ def test_download_and_verify_checksum_mismatch(tmp_path):
         def on_progress(downloaded, total):
             progress_calls.append((downloaded, total))
 
-        with patch("requests.get", return_value=mock_resp):
-            with patch.object(service, "_get_download_path", return_value=tmp_path / "test.dmg"):
-                with pytest.raises(ValueError, match="Checksum mismatch"):
-                    await service.download_and_install(info, on_progress)
+        with (
+            patch("requests.get", return_value=mock_resp),
+            patch.object(service, "_get_download_path", return_value=tmp_path / "test.dmg"),
+            pytest.raises(ValueError, match="Checksum mismatch"),
+        ):
+            await service.download_and_install(info, on_progress)
 
         assert len(progress_calls) > 0
         assert not (tmp_path / "test.dmg").exists()
@@ -152,11 +159,13 @@ def test_download_and_install_success(tmp_path):
         mock_app = mount_dir / "ATBClone.app"
         mock_app.mkdir()
 
-        with patch("requests.get", return_value=mock_resp):
-            with patch.object(service, "_get_download_path", return_value=dmg_file):
-                with patch.object(service, "MOUNT_POINT", mount_dir):
-                    with patch("subprocess.run", side_effect=mock_subprocess_run):
-                        await service.download_and_install(info)
+        with (
+            patch("requests.get", return_value=mock_resp),
+            patch.object(service, "_get_download_path", return_value=dmg_file),
+            patch.object(service, "MOUNT_POINT", mount_dir),
+            patch("subprocess.run", side_effect=mock_subprocess_run),
+        ):
+            await service.download_and_install(info)
 
         # Check that attach, ditto, and detach were executed
         assert any(c[0] == "hdiutil" and c[1] == "attach" for c in commands_run)
