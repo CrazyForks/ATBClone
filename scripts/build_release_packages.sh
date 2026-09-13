@@ -245,6 +245,44 @@ echo "==> Generating SHA256 checksums..."
 )
 cat "${CHECKSUM_FILE}"
 
+# ------------------------------------------------------------------------------
+# 4. Generate latest.json Update Manifest
+# ------------------------------------------------------------------------------
+MANIFEST_FILE="dist/latest.json"
+echo ""
+echo "==> Generating latest.json update manifest..."
+PUB_DATE=$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")
+export TARGET_VERSION
+export PUB_DATE
+python3 - << 'PY_EOF'
+import hashlib
+import json
+import os
+from pathlib import Path
+
+version = os.environ["TARGET_VERSION"]
+pub_date = os.environ["PUB_DATE"]
+dmg_path = Path(f"dist/ATBClone-{version}-arm64.dmg")
+notes_path = Path("dist/release_notes.md")
+
+sha256 = hashlib.sha256(dmg_path.read_bytes()).hexdigest()
+notes = notes_path.read_text(encoding="utf-8") if notes_path.exists() else ""
+
+data = {
+    "version": version,
+    "notes": notes,
+    "pub_date": pub_date,
+    "platforms": {
+        "darwin-aarch64": {
+            "checksum": sha256,
+            "url": f"https://github.com/aitobox/ATBClone/releases/download/v{version}/ATBClone-{version}-arm64.dmg",
+        }
+    },
+}
+Path("dist/latest.json").write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+print("[✔] Generated dist/latest.json")
+PY_EOF
+
 echo ""
 echo "======================================================"
 echo "  🎉 Release Packages Successfully Built!"
@@ -252,4 +290,5 @@ echo "======================================================"
 printf "  1. CLI Package: %s (%s)\n" "${CLI_TAR}" "${CLI_TAR_SIZE}"
 printf "  2. GUI DMG:     %s (%s)\n" "${FINAL_DMG}" "${FINAL_DMG_SIZE}"
 printf "  3. Checksums:   %s\n" "${CHECKSUM_FILE}"
+printf "  4. Manifest:    %s\n" "${MANIFEST_FILE}"
 echo "======================================================"
