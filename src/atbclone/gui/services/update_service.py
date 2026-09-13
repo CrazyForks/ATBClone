@@ -100,8 +100,15 @@ class UpdateService:
         def _fetch():
             proxies = _get_configured_proxies()
             logger.info(f"Checking for updates from {self.LATEST_JSON_URL} (proxy={bool(proxies)})...")
-            resp = requests.get(self.LATEST_JSON_URL, timeout=10, proxies=proxies)
-            resp.raise_for_status()
+            try:
+                resp = requests.get(self.LATEST_JSON_URL, timeout=10, proxies=proxies)
+                resp.raise_for_status()
+            except requests.HTTPError as exc:
+                # Re-raise showing our canonical URL, not the redirect target GitHub returns
+                raise requests.HTTPError(
+                    f"{exc.response.status_code} {exc.response.reason} — {self.LATEST_JSON_URL}",
+                    response=exc.response,
+                ) from exc
             data = resp.json()
 
             remote_ver_str = data.get("version", "").strip()

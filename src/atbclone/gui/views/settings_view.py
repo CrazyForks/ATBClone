@@ -239,6 +239,12 @@ class SettingsView(toga.Box):
             style=Pack(font_size=12, color=Theme.TEXT_MUTED, margin_top=4),
         )
         inner_info.add(self.lbl_update_status)
+
+        self.lbl_update_url = toga.Label(
+            UpdateService.LATEST_JSON_URL,
+            style=Pack(font_size=10.5, color=Theme.TEXT_MUTED, margin_top=2),
+        )
+        inner_info.add(self.lbl_update_url)
         card_info.add(inner_info)
         content_box.add(card_info)
 

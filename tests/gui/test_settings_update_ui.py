@@ -13,8 +13,10 @@ def test_settings_view_update_widgets_exist(toga_app):
     view = SettingsView()
     assert hasattr(view, "btn_check_update")
     assert hasattr(view, "lbl_update_status")
+    assert hasattr(view, "lbl_update_url")
     assert view.btn_check_update.text == t("settings_btn_check_update")
     assert view.lbl_update_status.text == ""
+    assert "github.com/aitobox/ATBClone/releases/latest/download/latest.json" in view.lbl_update_url.text
     set_language(None)
 
 
