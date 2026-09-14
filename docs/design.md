@@ -1,4 +1,4 @@
-# ATBClone (艾特智能分身) 项目架构与设计说明书
+# ATBClone (ATB分身助手) 项目架构与设计说明书
 
 ## 1. 项目概述 (Project Overview)
 

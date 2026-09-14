@@ -10,7 +10,7 @@
 ## 1. 背景与目标
 
 ### 1.1 背景
-ATBClone（艾特智能分身）是一款面向全球 macOS 用户的高性能应用多开与沙盒隔离工具。其客户端 GUI（`src/atbclone/core/locale.py`）已完整支持 9 国语言。为提供一致的全球化用户体验，官方独立文档站点 **`https://clone.aitobox.com`** 需要由现有的中英双语扩展至全套 9 国语言。
+ATBClone（ATB分身助手）是一款面向全球 macOS 用户的高性能应用多开与沙盒隔离工具。其客户端 GUI（`src/atbclone/core/locale.py`）已完整支持 9 国语言。为提供一致的全球化用户体验，官方独立文档站点 **`https://clone.aitobox.com`** 需要由现有的中英双语扩展至全套 9 国语言。
 
 ### 1.2 目标语言支持矩阵
 1. **English (英语)**: `/en/` (`docs/guide/en/`) - 已就绪

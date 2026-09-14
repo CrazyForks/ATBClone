@@ -1,7 +1,7 @@
 [project]
 site_name        = "ATBClone 用户手册"
 site_url         = "https://clone.aitobox.com/zh/"
-site_description = "ATBClone（艾特智能分身）官方使用手册 — macOS 应用多开与沙盒隔离引擎"
+site_description = "ATBClone（ATB分身助手）官方使用手册 — macOS 应用多开与沙盒隔离引擎"
 repo_url         = "https://github.com/aitobox/ATBClone"
 repo_name        = "aitobox/ATBClone"
 docs_dir         = "zh-cn"
