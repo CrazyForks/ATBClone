@@ -49,7 +49,7 @@ def copy_to_clipboard(text: str) -> bool:
 class CloneDetailWindow(toga.Window):
     def __init__(self, record: CloneRecord):
         super().__init__(title=t("win_detail_title", name=record.clone_name), size=(580, 580))
-        configure_cocoa_window(self, floating=True)
+        configure_cocoa_window(self, floating=False)
         self.record = record
         self.details: InjectedDetails = CloneInspector.inspect(record)
 

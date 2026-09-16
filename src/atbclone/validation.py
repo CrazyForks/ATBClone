@@ -27,7 +27,7 @@ _FORBIDDEN_CTRL_PATTERN = re.compile(r"[\x00-\x1f\x7f]")
 
 # Characters rejected in proxy credentials / no_proxy: they break the generated
 # shell `export` lines, the embedded URL, or the generated C launcher source.
-_PROXY_FORBIDDEN_PATTERN = re.compile(r"""["'`$\\\s\x00-\x1f\x7f]""")
+_PROXY_FORBIDDEN_PATTERN = re.compile(r"""["'`$\\\s\x00-\x1f\x7f;&|<>()]""")
 
 
 def validate_bundle_id(value: str, *, field: str = "bundle_id") -> str:
@@ -237,8 +237,21 @@ def validate_deletion_target(path_str: str, *, expect_bundle: bool = False, fiel
     text = str(norm)
     if not norm.is_absolute():
         raise ValueError(f"Refusing to delete non-absolute {field}: {text!r}.")
-    home = str(Path.home())
-    if text == home or text in _CRITICAL_EXACT_PATHS:
+    home = Path.home()
+    user_critical_paths = frozenset(
+        {
+            str(home),
+            str(home / "Desktop"),
+            str(home / "Documents"),
+            str(home / "Downloads"),
+            str(home / "Library"),
+            str(home / "Applications"),
+            str(home / "Movies"),
+            str(home / "Music"),
+            str(home / "Pictures"),
+        }
+    )
+    if text in user_critical_paths or text in _CRITICAL_EXACT_PATHS:
         raise ValueError(f"Refusing to delete critical {field}: {text!r}.")
     for prefix in _CRITICAL_PREFIX_PATHS:
         if text == prefix or text.startswith(prefix + "/"):

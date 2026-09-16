@@ -161,10 +161,10 @@ class CloneEngine:
                 continue
             if arg in ("-AppleLanguages", "-AppleLocale"):
                 continue
-            args_list.append(shlex.quote(arg.replace("{{ATB_DATA_DIR}}", str(data_dir))))
+            args_list.append(arg.replace("{{ATB_DATA_DIR}}", str(data_dir)))
 
         for larg in lang_args:
-            args_list.append(shlex.quote(larg))
+            args_list.append(larg)
 
         return args_list
 
@@ -332,12 +332,16 @@ class CloneEngine:
             setenv_c_lines.append(f'    setenv("{k_esc}", "{v_esc}", 1);')
 
         if proxy_env:
+            proxy_map: dict[str, str] = {}
             for line in proxy_env.splitlines():
                 if line.startswith("export "):
                     kv = line[7:]
                     if "=" in kv:
                         pk, pv = kv.split("=", 1)
                         pv_clean = pv.strip("'\"")
+                        if pv_clean.startswith("$") and pv_clean[1:] in proxy_map:
+                            pv_clean = proxy_map[pv_clean[1:]]
+                        proxy_map[pk] = pv_clean
                         pk_esc = pk.replace('"', '\\"')
                         pv_esc = pv_clean.replace('\\', '\\\\').replace('"', '\\"')
                         setenv_c_lines.append(f'    setenv("{pk_esc}", "{pv_esc}", 1);')
@@ -379,7 +383,11 @@ class CloneEngine:
 
         hook_block = ""
         if hook_dylib_rel_path:
-            hook_block = f"""    const char *existing_dyld = getenv("DYLD_INSERT_LIBRARIES");
+            hook_block = f"""    char exe_buf[PATH_MAX];
+    uint32_t exe_buf_size = sizeof(exe_buf);
+    if (_NSGetExecutablePath(exe_buf, &exe_buf_size) != 0) return 1;
+    char *dir = dirname(exe_buf);
+    const char *existing_dyld = getenv("DYLD_INSERT_LIBRARIES");
     char hook_path[PATH_MAX * 2];
     if (existing_dyld && strlen(existing_dyld) > 0) {{
         snprintf(hook_path, sizeof(hook_path), "%s:%s/{hook_dylib_rel_path}", existing_dyld, dir);
@@ -442,12 +450,16 @@ chmod +x {dst_wrapper}
             setenv_c_lines.append(f'    setenv("{k_esc}", "{v_esc}", 1);')
 
         if proxy_env:
+            proxy_map: dict[str, str] = {}
             for line in proxy_env.splitlines():
                 if line.startswith("export "):
                     kv = line[7:]
                     if "=" in kv:
                         pk, pv = kv.split("=", 1)
                         pv_clean = pv.strip("'\"")
+                        if pv_clean.startswith("$") and pv_clean[1:] in proxy_map:
+                            pv_clean = proxy_map[pv_clean[1:]]
+                        proxy_map[pk] = pv_clean
                         pk_esc = pk.replace('"', '\\"')
                         pv_esc = pv_clean.replace('\\', '\\\\').replace('"', '\\"')
                         setenv_c_lines.append(f'    setenv("{pk_esc}", "{pv_esc}", 1);')
@@ -696,7 +708,7 @@ mkdir -p {dst_mac}
 {codex_init_cmd}{gemini_init_cmd}{claude_init_cmd}# Copy Resources dir so the app icon (.icns) and other assets are available
 
 if [ -d {src_resources} ]; then
-    cp -R {src_resources} {dst_resources}
+    cp -Rc {src_resources} {dst_resources} 2>/dev/null || cp -R {src_resources} {dst_resources}
 fi
 cp {src_plist} {dst_plist}
 chmod -R u+w {dst_app} 2>/dev/null || true
@@ -923,7 +935,7 @@ if os.path.exists(cef_path) and not os.path.islink(cef_path):
                 if (pw) {
                     const char *custom_home = getenv("HOME");
                     if (custom_home && custom_home[0]) {
-                        static struct passwd fake_pw;
+                        __thread static struct passwd fake_pw;
                         fake_pw = *pw;
                         fake_pw.pw_dir = (char *)custom_home;
                         return &fake_pw;
@@ -1037,25 +1049,10 @@ CHATGPT_HOOK_EOF
             chmod +x {dst_frameworks}/libatbclone_chatgpt_hook.dylib
         """).strip() + "\n"
 
-    @staticmethod
-    def _build_symlink_whitelist_snippet(task: CloneTask) -> str:
+    @classmethod
+    def _build_symlink_whitelist_snippet(cls, task: CloneTask) -> str:
         """Return a shell snippet that creates symlinks for items in symlink_whitelist."""
-        whitelist = getattr(task.recipe, "symlink_whitelist", [])
-        if not whitelist:
-            return ""
-        lines = []
-        for item in whitelist:
-            item_clean = item.strip().strip("/")
-            if not item_clean:
-                continue
-            item_quoted = shlex.quote(item_clean)
-            lines.append(
-                f'    if [ ! -e "$HOME"/{item_quoted} ] && [ -e "$REAL_USER_HOME"/{item_quoted} ]; then\n'
-                f'        mkdir -p "$(dirname "$HOME"/{item_quoted})"\n'
-                f'        ln -s "$REAL_USER_HOME"/{item_quoted} "$HOME"/{item_quoted} 2>/dev/null || true\n'
-                f'    fi'
-            )
-        return "\n".join(lines)
+        return CloneEngine._build_symlink_whitelist_snippet(task)
 
     @staticmethod
     def patch_framework_singletons(dest_path: Path) -> bool:
@@ -1082,6 +1079,11 @@ CHATGPT_HOOK_EOF
                             continue
                         f.seek(0)
                         data = bytearray(f.read())
+
+                    if len(data) >= 8:
+                        cputype = struct.unpack_from("<I", data, 4)[0]
+                        if cputype == 0x01000007:  # CPU_TYPE_X86_64: skip Intel binaries
+                            continue
 
                     str_idx = data.find(target_str)
                     if str_idx == -1:
@@ -1417,6 +1419,7 @@ done
         if task.recipe.strip_sandbox:
             codesign_cmds = (
                 f'ent_plist=$(mktemp "${{TMPDIR:-/tmp}}/atb_ent_XXXXXX")\n'
+                f'trap \'rm -f "$ent_plist"\' EXIT INT TERM\n'
                 f'codesign -d --entitlements - --xml {src} > "$ent_plist" 2>/dev/null || true\n'
                 f'if [ -s "$ent_plist" ]; then\n'
                 f'    /usr/libexec/PlistBuddy -c "Delete :com.apple.security.app-sandbox" "$ent_plist" 2>/dev/null || true\n'
@@ -1470,7 +1473,7 @@ done
 mkdir -p {dst_parent}
 mkdir -p {data_dir}
 rm -rf {dst}
-{codex_init_cmd}{gemini_init_cmd}{claude_init_cmd}cp -R {src} {dst}
+{codex_init_cmd}{gemini_init_cmd}{claude_init_cmd}cp -Rc {src} {dst} 2>/dev/null || cp -R {src} {dst}
 
 chmod -R u+w {dst} 2>/dev/null || true
 /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier {task.new_bundle_id}" {dst_plist}

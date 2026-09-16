@@ -130,9 +130,24 @@ def get_system_apple_locale() -> str:
     return "zh_CN"
 
 
+def normalize_locale_code(language: str | None) -> str:
+    """Normalize input language code to a SUPPORTED_LANGUAGES key."""
+    if not language or language == "system":
+        return "system"
+    clean = language.strip().replace("_", "-").lower()
+    if clean in ("zh", "zh-cn", "zh-hans", "zh-hans-cn"):
+        return "zh-Hans"
+    if clean in ("zh-tw", "zh-hk", "zh-mo", "zh-hant", "zh-hant-tw"):
+        return "zh-Hant"
+    for k in SUPPORTED_LANGUAGES:
+        if clean == k.lower():
+            return k
+    return "system"
+
+
 def resolve_language_config(language: str | None) -> LanguageConfig:
     """Resolve a language identifier into concrete LanguageConfig."""
-    lang_key = language if language in SUPPORTED_LANGUAGES else "system"
+    lang_key = normalize_locale_code(language)
 
     if lang_key == "system":
         sys_langs = get_system_apple_languages()

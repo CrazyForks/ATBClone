@@ -62,6 +62,14 @@ class CloneInspector:
             for target_file in candidates:
                 if target_file.exists() and target_file.is_file():
                     try:
+                        # Skip large files or Mach-O binaries to avoid high memory/CPU usage
+                        if target_file.stat().st_size > 2 * 1024 * 1024:
+                            continue
+                        with open(target_file, "rb") as bf:
+                            magic = bf.read(4)
+                        # Mach-O 32-bit / 64-bit / Universal binary magic headers
+                        if magic in (b"\xcf\xfa\xed\xfe", b"\xce\xfa\xed\xfe", b"\xca\xfe\xba\xbe", b"\xbe\xba\xfe\xca"):
+                            continue
                         content = target_file.read_text(encoding="utf-8", errors="ignore")
                         if content.startswith("#!/bin/bash") or "exec " in content:
                             details = cls.parse_wrapper_script(content)

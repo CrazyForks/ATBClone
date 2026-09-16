@@ -51,12 +51,29 @@ def load_config() -> dict:
 
 
 def save_config(cfg: dict) -> None:
-    """Persist configuration dictionary to disk in YAML format."""
+    """Persist configuration dictionary to disk in YAML format atomically."""
+    import os
+    import tempfile
     import yaml
 
     DEFAULT_ATB_DIR.mkdir(parents=True, exist_ok=True)
-    with open(DEFAULT_CONFIG_FILE, "w", encoding="utf-8") as f:
-        yaml.safe_dump(cfg, f, allow_unicode=True, sort_keys=False)
+    temp_fd, temp_path = tempfile.mkstemp(
+        dir=DEFAULT_CONFIG_FILE.parent,
+        prefix="config_",
+        suffix=".tmp",
+    )
+    try:
+        with os.fdopen(temp_fd, "w", encoding="utf-8") as f:
+            yaml.safe_dump(cfg, f, allow_unicode=True, sort_keys=False)
+        os.chmod(temp_path, 0o600)
+        os.replace(temp_path, DEFAULT_CONFIG_FILE)
+    except Exception:
+        if os.path.exists(temp_path):
+            try:
+                os.unlink(temp_path)
+            except OSError:
+                pass
+        raise
 
 
 def get_config_value(key: str, default: any = None) -> any:

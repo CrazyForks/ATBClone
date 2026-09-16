@@ -151,7 +151,10 @@ def configure_cocoa_card(native_view: Any, corner_radius: float = 10.0, border_w
             elif hasattr(layer, "borderWidth"):
                 layer.borderWidth = border_width
 
-            border_color = NSColor.colorWithRed_green_blue_alpha_(0.88, 0.88, 0.90, 1.0)
+            if is_dark_mode():
+                border_color = NSColor.colorWithRed_green_blue_alpha_(0.25, 0.25, 0.28, 1.0)
+            else:
+                border_color = NSColor.colorWithRed_green_blue_alpha_(0.88, 0.88, 0.90, 1.0)
             if hasattr(border_color, "CGColor"):
                 cg_color = border_color.CGColor
                 if hasattr(layer, "setBorderColor_"):
@@ -168,7 +171,8 @@ def configure_cocoa_card(native_view: Any, corner_radius: float = 10.0, border_w
                     shadow.shadowOffset = (0, -1)
                     shadow.shadowBlurRadius = 4.0
                     if hasattr(NSColor, "colorWithRed_green_blue_alpha_"):
-                        shadow.shadowColor = NSColor.colorWithRed_green_blue_alpha_(0.0, 0.0, 0.0, 0.08)
+                        shadow_alpha = 0.25 if is_dark_mode() else 0.08
+                        shadow.shadowColor = NSColor.colorWithRed_green_blue_alpha_(0.0, 0.0, 0.0, shadow_alpha)
                     native_view.setShadow_(shadow)
                 except Exception:
                     pass
@@ -179,7 +183,7 @@ def configure_cocoa_card(native_view: Any, corner_radius: float = 10.0, border_w
 def configure_cocoa_sidebar_active(native_btn: Any, active: bool) -> None:
     """Set or clear the Cocoa-level background highlight on a sidebar button NSView for active state.
 
-    Uses the NSView layer backgroundColor to paint Theme.BG_SIDEBAR_ACTIVE (#DFE1E8)
+    Uses the NSView layer backgroundColor to paint Theme.BG_SIDEBAR_ACTIVE (#DFE1E8 or #2D3039 in dark mode)
     behind the active nav item, matching native macOS sidebar selection styling.
     """
     if sys.platform != "darwin" or native_btn is None:
@@ -192,8 +196,12 @@ def configure_cocoa_sidebar_active(native_btn: Any, active: bool) -> None:
         if layer is None:
             return
         if active:
-            # #DFE1E8 → r=0.875 g=0.882 b=0.910 a=1.0
-            bg = NSColor.colorWithRed_green_blue_alpha_(0.875, 0.882, 0.910, 1.0)
+            if is_dark_mode():
+                # Dark mode active pill: #2D3039 -> r=0.176 g=0.188 b=0.224 a=1.0
+                bg = NSColor.colorWithRed_green_blue_alpha_(0.176, 0.188, 0.224, 1.0)
+            else:
+                # #DFE1E8 → r=0.875 g=0.882 b=0.910 a=1.0
+                bg = NSColor.colorWithRed_green_blue_alpha_(0.875, 0.882, 0.910, 1.0)
         else:
             bg = NSColor.clearColor
         if hasattr(bg, "CGColor"):
@@ -531,10 +539,11 @@ def patch_cocoa_widgets() -> None:
         pass
 
 
-def configure_cocoa_window(window: Any, floating: bool = True, parent_window: Any = None) -> None:
-    """Ensure Cocoa NSWindow stays in front and remains key/active during transitions.
+def configure_cocoa_window(window: Any, floating: bool = False, parent_window: Any = None) -> None:
+    """Ensure Cocoa NSWindow is brought forward and remains key/active during transitions.
 
-    - floating=True: sets window level to NSFloatingWindowLevel (3) so it stays above main windows.
+    - floating=False (default): normal window level (NSNormalWindowLevel=0). Does not float above other apps.
+    - floating=True: sets window level to NSFloatingWindowLevel (3) for utility/overlay panels.
     - parent_window: optionally attaches as child window to parent window.
     - makeKeyAndOrderFront: brings window to foreground and gives it focus.
     """
@@ -543,9 +552,9 @@ def configure_cocoa_window(window: Any, floating: bool = True, parent_window: An
     try:
         native = getattr(getattr(window, "_impl", None), "native", None)
         if native is not None:
-            if floating and hasattr(native, "setLevel_"):
-                # NSFloatingWindowLevel = 3
-                native.setLevel_(3)
+            if hasattr(native, "setLevel_"):
+                # 0 = NSNormalWindowLevel, 3 = NSFloatingWindowLevel
+                native.setLevel_(3 if floating else 0)
             if hasattr(native, "makeKeyAndOrderFront_"):
                 native.makeKeyAndOrderFront_(None)
 

@@ -36,7 +36,7 @@ class ReleaseNotesWindow(toga.Window):
             title=t("release_notes_window_title"),
             size=(780, 580),
         )
-        configure_cocoa_window(self, floating=True)
+        configure_cocoa_window(self, floating=False)
 
         self.current_lang = normalize_lang_code(initial_lang or get_language())
         self.current_path: Optional[Path] = None

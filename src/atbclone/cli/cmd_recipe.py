@@ -63,6 +63,13 @@ def recipe_list() -> None:
 @click.argument("bundle_id")
 def recipe_show(bundle_id: str) -> None:
     """Show recipe details for a specific bundle ID."""
+    from atbclone.validation import validate_bundle_id
+    try:
+        validate_bundle_id(bundle_id)
+    except ValueError as e:
+        console.print(f"[bold red]Error:[/bold red] {e}")
+        sys.exit(1)
+
     logger.info(f"Showing recipe details for bundle_id='{bundle_id}'")
     local_file = RecipeLoader.get_local_dir() / f"{bundle_id}.yaml"
     builtin_file = RecipeLoader.BUILTIN_DIR / f"{bundle_id}.yaml"

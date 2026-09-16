@@ -22,7 +22,7 @@ class CloneEditWindow(toga.Window):
         on_save: Callable[[CloneRecord], Coroutine[Any, Any, None]] | None = None,
     ):
         super().__init__(title=t("win_edit_title", name=record.clone_name), size=(520, 440))
-        configure_cocoa_window(self, floating=True)
+        configure_cocoa_window(self, floating=False)
         self.record = record
         self.on_save_callback = on_save
 

@@ -27,6 +27,26 @@ class CloneRecord:
     injection_strategy: str = "auto"
 
 
+import contextlib
+import fcntl
+import tempfile
+
+
+@contextlib.contextmanager
+def _file_lock(lock_path: Path):
+    """Advisory file lock to serialize read-modify-write state changes."""
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(lock_path, "a") as f:
+        try:
+            fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+            yield
+        finally:
+            try:
+                fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+            except OSError:
+                pass
+
+
 class StateManager:
     def __init__(self, state_file: Path | None = None):
         if state_file is not None:
@@ -34,6 +54,10 @@ class StateManager:
         else:
             from atbclone.core.config import DEFAULT_STATE_FILE
             self.state_file = DEFAULT_STATE_FILE
+
+    @property
+    def lock_file(self) -> Path:
+        return self.state_file.with_suffix(".lock")
 
     def load(self) -> list[CloneRecord]:
         """Load all records from YAML file. Returns empty list if file missing or corrupt."""
@@ -83,7 +107,7 @@ class StateManager:
         return records
 
     def save(self, records: list[CloneRecord]) -> None:
-        """Save records to YAML file (create parent dirs if needed)."""
+        """Save records atomically to YAML file (create parent dirs if needed)."""
         self.state_file.parent.mkdir(parents=True, exist_ok=True)
         # Ensure no plaintext passwords exist in records before saving
         for r in records:
@@ -103,39 +127,54 @@ class StateManager:
                     pass
 
         raw_list = [asdict(r) for r in records]
-        with open(self.state_file, "w", encoding="utf-8") as f:
-            yaml.safe_dump(raw_list, f, allow_unicode=True, sort_keys=False)
-        # Records may embed proxy credentials in proxy_summary; keep the file
-        # owner-readable only.
+        temp_fd, temp_path = tempfile.mkstemp(
+            prefix="clones_",
+            suffix=".yaml.tmp",
+            dir=str(self.state_file.parent),
+        )
         try:
-            os.chmod(self.state_file, 0o600)
-        except OSError:
-            pass
+            with open(temp_fd, "w", encoding="utf-8") as f:
+                yaml.safe_dump(raw_list, f, allow_unicode=True, sort_keys=False)
+                f.flush()
+                os.fsync(f.fileno())
+            try:
+                os.chmod(temp_path, 0o600)
+            except OSError:
+                pass
+            os.replace(temp_path, self.state_file)
+        finally:
+            if os.path.exists(temp_path):
+                try:
+                    os.unlink(temp_path)
+                except OSError:
+                    pass
 
     def add(self, record: CloneRecord) -> None:
-        """Append or update a record and persist."""
-        records = self.load()
-        for i, r in enumerate(records):
-            if r.clone_name == record.clone_name:
-                records[i] = record
-                break
-        else:
-            records.append(record)
-        self.save(records)
+        """Append or update a record and persist under lock."""
+        with _file_lock(self.lock_file):
+            records = self.load()
+            for i, r in enumerate(records):
+                if r.clone_name == record.clone_name:
+                    records[i] = record
+                    break
+            else:
+                records.append(record)
+            self.save(records)
 
     def remove(self, clone_name: str) -> bool:
-        """Remove record by clone_name. Returns True if found and removed."""
-        records = self.load()
-        new_records = [r for r in records if r.clone_name != clone_name]
-        if len(new_records) != len(records):
-            self.save(new_records)
-            try:
-                from atbclone.core.keychain import delete_clone_proxy_password
-                delete_clone_proxy_password(clone_name)
-            except Exception:
-                pass
-            return True
-        return False
+        """Remove record by clone_name under lock. Returns True if found and removed."""
+        with _file_lock(self.lock_file):
+            records = self.load()
+            new_records = [r for r in records if r.clone_name != clone_name]
+            if len(new_records) != len(records):
+                self.save(new_records)
+                try:
+                    from atbclone.core.keychain import delete_clone_proxy_password
+                    delete_clone_proxy_password(clone_name)
+                except Exception:
+                    pass
+                return True
+            return False
 
     def get(self, clone_name: str) -> CloneRecord | None:
         """Get record by clone_name. Returns None if not found."""

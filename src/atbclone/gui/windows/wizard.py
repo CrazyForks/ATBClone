@@ -36,7 +36,7 @@ class WizardWindow(toga.Window):
     ):
         patch_cocoa_widgets()
         super().__init__(title=t("win_wizard_title"), size=(580, 530))
-        configure_cocoa_window(self, floating=True)
+        configure_cocoa_window(self, floating=False)
 
         self.clone_service = clone_service or CloneService()
         self.probe_service = probe_service or ProbeService()
@@ -69,7 +69,7 @@ class WizardWindow(toga.Window):
 
     def show(self):
         super().show()
-        configure_cocoa_window(self, floating=True)
+        configure_cocoa_window(self, floating=False)
 
 
     def _init_step_widgets(self):
@@ -314,7 +314,7 @@ class WizardWindow(toga.Window):
             self.step_container.add(box)
 
         # Keep wizard window in front and focused during step transitions
-        configure_cocoa_window(self, floating=True)
+        configure_cocoa_window(self, floating=False)
 
     async def _on_browse_app(self, widget: toga.Button):
         """Browse for macOS application bundle (.app) in /Applications."""
@@ -329,7 +329,7 @@ class WizardWindow(toga.Window):
         except Exception:
             pass
         finally:
-            configure_cocoa_window(self, floating=True)
+            configure_cocoa_window(self, floating=False)
 
     async def _on_browse_dest(self, widget: toga.Button):
         """Browse for destination directory (step 4)."""
@@ -342,7 +342,7 @@ class WizardWindow(toga.Window):
         except Exception:
             pass
         finally:
-            configure_cocoa_window(self, floating=True)
+            configure_cocoa_window(self, floating=False)
 
     async def _on_browse_data(self, widget: toga.Button):
         """Browse for data directory (step 5)."""
@@ -355,7 +355,7 @@ class WizardWindow(toga.Window):
         except Exception:
             pass
         finally:
-            configure_cocoa_window(self, floating=True)
+            configure_cocoa_window(self, floating=False)
 
     def _on_clone_name_change(self, widget: toga.TextInput):
         """Automatically mirror Clone Name into Display Name if user hasn't customized it."""

@@ -94,7 +94,8 @@ class SettingsView(toga.Box):
         # Root Workspace Directory input row
         row_base = toga.Box(style=Pack(direction=ROW, align_items=CENTER, margin_bottom=6))
         row_base.add(toga.Label(t("settings_label_root"), style=Pack(width=120, font_size=13, color=Theme.TEXT_PRIMARY)))
-        self.input_base_dir = toga.TextInput(value=str(DEFAULT_ATB_DIR), on_change=self._on_base_dir_changed, style=Pack(flex=1, margin_right=8, font_size=13.5))
+        current_base = get_config_value("base_dir", str(DEFAULT_ATB_DIR))
+        self.input_base_dir = toga.TextInput(value=str(current_base), on_change=self._on_base_dir_changed, style=Pack(flex=1, margin_right=8, font_size=13.5))
         self.btn_browse_base = toga.Button(t("btn_browse_dir"), on_press=self._on_browse_base, style=Pack(height=30, font_size=13))
         row_base.add(self.input_base_dir)
         row_base.add(self.btn_browse_base)
@@ -470,6 +471,7 @@ class SettingsView(toga.Box):
             except Exception:
                 pass
 
+        set_config_value("base_dir", base_dir or str(DEFAULT_ATB_DIR))
         set_config_value("default_proxy", proxy_dict)
         logger.info(f"Settings saved: base_dir='{base_dir}', proxy_enabled={proxy_enabled}, minimize_to_tray={minimize_to_tray}")
         if self.app_instance and hasattr(self.app_instance, "main_window"):

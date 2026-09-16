@@ -387,6 +387,10 @@ class ATBCloneApp(toga.App):
         if hasattr(self, "tray_service") and self.tray_service:
             self.tray_service.retranslate()
 
+        # Clean up existing views before recreating to avoid memory/listener leaks
+        if hasattr(self, "logs_view") and self.logs_view and hasattr(self.logs_view, "cleanup"):
+            self.logs_view.cleanup()
+
         # Re-initialize views with updated localized strings
         self.clone_view = CloneListView(clone_service=self.clone_service, app=self)
         self.recipe_view = RecipeListView(recipe_service=self.recipe_service, app=self)

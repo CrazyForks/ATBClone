@@ -64,7 +64,7 @@ class RecipeEditWindow(toga.Window):
         on_save: Callable[[Recipe], Coroutine[Any, Any, None]] | None = None,
     ):
         super().__init__(title=title, size=(540, 580))
-        configure_cocoa_window(self, floating=True)
+        configure_cocoa_window(self, floating=False)
         self.original_recipe = recipe
         self.on_save_callback = on_save
 

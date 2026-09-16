@@ -97,10 +97,18 @@ def probe(app_path: str, save: bool, output: str | None, json_mode: bool) -> Non
         target_file = target_dir / f"{info.bundle_id}.yaml"
         target_file.write_text(yaml_str, encoding="utf-8")
         logger.info(f"Saved probed recipe to '{target_file}'")
-        console.print(t("probe_saved_to", path=target_file), soft_wrap=True)
+        if json_mode:
+            import sys
+            sys.stderr.write(f"{t('probe_saved_to', path=target_file)}\n")
+        else:
+            console.print(t("probe_saved_to", path=target_file), soft_wrap=True)
     elif output:
         out_file = Path(output).expanduser().resolve()
         out_file.parent.mkdir(parents=True, exist_ok=True)
         out_file.write_text(yaml_str, encoding="utf-8")
         logger.info(f"Saved probed recipe to '{out_file}'")
-        console.print(t("probe_saved_to", path=out_file), soft_wrap=True)
+        if json_mode:
+            import sys
+            sys.stderr.write(f"{t('probe_saved_to', path=out_file)}\n")
+        else:
+            console.print(t("probe_saved_to", path=out_file), soft_wrap=True)

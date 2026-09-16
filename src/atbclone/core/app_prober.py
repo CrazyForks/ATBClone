@@ -29,11 +29,26 @@ class AppProber:
     @staticmethod
     def inspect_entitlements(app_path: Path | str) -> dict[str, Any]:
         """Extract code signing entitlements as a dictionary."""
+        # 1. Try modern macOS --xml flag to guarantee XML plist output
+        try:
+            res = subprocess.run(
+                ["codesign", "-d", "--entitlements", ":-", "--xml", str(app_path)],
+                capture_output=True,
+                check=False,
+                timeout=10,
+            )
+            if res.returncode == 0 and res.stdout:
+                return plistlib.loads(res.stdout)
+        except Exception:
+            pass
+
+        # 2. Fallback for older macOS releases
         try:
             res = subprocess.run(
                 ["codesign", "-d", "--entitlements", ":-", str(app_path)],
                 capture_output=True,
                 check=False,
+                timeout=10,
             )
             if res.returncode == 0 and res.stdout:
                 return plistlib.loads(res.stdout)

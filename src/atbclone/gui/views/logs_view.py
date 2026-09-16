@@ -69,11 +69,42 @@ class LogsView(toga.Box):
             self._raw_log_lines = []
         self._update_log_display()
 
+    def cleanup(self):
+        """Deregister listeners to avoid memory leaks."""
+        try:
+            remove_log_listener(self._on_live_log_entry)
+        except Exception:
+            pass
+
     def _on_live_log_entry(self, entry: str):
         """Listener callback for new log messages emitted anywhere in the app (inserted at top)."""
-        if entry.strip():
+        if not entry.strip():
+            return
+
+        def _apply():
             self._raw_log_lines.insert(0, entry.strip())
             self._update_log_display()
+
+        import asyncio
+
+        loop = None
+        if (
+            self.app_instance
+            and hasattr(self.app_instance, "loop")
+            and self.app_instance.loop
+            and self.app_instance.loop.is_running()
+        ):
+            loop = self.app_instance.loop
+        else:
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                pass
+
+        if loop and loop.is_running():
+            loop.call_soon_threadsafe(_apply)
+        else:
+            _apply()
 
     def _update_log_display(self):
         query = self._current_filter.strip().lower()

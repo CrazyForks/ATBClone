@@ -4274,13 +4274,15 @@ def is_chinese() -> bool:
 def t(key: str, **kwargs: Any) -> str:
     """Translate a message key to the current language with optional keyword formatting."""
     lang = get_language()
+    norm_lang = normalize_lang_code(lang)
     msg_dict = MESSAGES.get(key)
     if not msg_dict:
         return key.format(**kwargs) if kwargs else key
 
     template = (
         msg_dict.get(lang)
-        or (msg_dict.get("zh") if lang == "zh_TW" else None)
+        or msg_dict.get(norm_lang)
+        or (msg_dict.get("zh") if norm_lang == "zh_TW" else None)
         or msg_dict.get("en")
         or msg_dict.get("zh")
         or key

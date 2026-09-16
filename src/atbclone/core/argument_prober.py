@@ -76,20 +76,14 @@ class BinaryArgumentProber:
             return set()
 
         pattern = re.compile(rb"[\x20-\x7E]{" + str(min_len).encode() + rb",}")
-        strings: set[str] = set()
 
         try:
             with open(path, "rb") as f:
                 data = f.read(max_bytes)
-                for match in pattern.finditer(data):
-                    try:
-                        strings.add(match.group(0).decode("ascii"))
-                    except UnicodeDecodeError:
-                        pass
+                return {m.decode("ascii") for m in pattern.findall(data)}
         except (OSError, PermissionError) as e:
             logger.warning(f"Failed to read binary strings from '{path}': {e}")
-
-        return strings
+            return set()
 
     @classmethod
     def probe_data_dir_argument(cls, binary_path: Path | str) -> ArgumentProbeResult:
@@ -98,12 +92,37 @@ class BinaryArgumentProber:
         if not path.is_file():
             return ArgumentProbeResult(reason="Binary file not found.")
 
-        strings = cls.extract_binary_strings(path)
+        try:
+            with open(path, "rb") as f:
+                data = f.read(15_000_000)
+        except (OSError, PermissionError) as e:
+            logger.warning(f"Failed to read binary from '{path}': {e}")
+            return ArgumentProbeResult(reason=f"Failed to read binary: {e}")
+
+        if not data:
+            return ArgumentProbeResult(reason="Binary file is empty.")
+
+        data_lower = data.lower()
+
+        # Fast SIMD pre-filter: check if candidate flag bytes exist in binary data
+        relevant_candidates = [
+            (flag, template, syntax)
+            for flag, template, syntax in cls.CANDIDATE_PATTERNS
+            if flag.lower().encode("ascii") in data_lower
+        ]
+
+        if not relevant_candidates:
+            return ArgumentProbeResult(
+                reason="No custom data directory CLI argument detected. Degraded to HOME/TMPDIR environment isolation.",
+            )
+
+        pattern = re.compile(rb"[\x20-\x7E]{3,}")
+        strings = {m.decode("ascii") for m in pattern.findall(data)}
         if not strings:
             return ArgumentProbeResult(reason="No printable strings extracted from binary.")
 
-        # Match candidates in priority order with precise boundary checking
-        for flag, template, syntax in cls.CANDIDATE_PATTERNS:
+        # Match relevant candidates with precise boundary checking
+        for flag, template, syntax in relevant_candidates:
             if flag.startswith("--"):
                 flag_regex = re.compile(rf"(?<![\w-]){re.escape(flag)}(?:[=\s\:\>\<\"\'\`]|$)", re.IGNORECASE)
             elif flag.startswith("-D"):
