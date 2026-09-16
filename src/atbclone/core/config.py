@@ -90,3 +90,51 @@ def set_config_value(key: str, value: any) -> None:
     cfg[key] = value
     save_config(cfg)
 
+
+def get_base_dir() -> Path:
+    """Retrieve the base ATBClone directory (configurable, defaults to DEFAULT_ATB_DIR)."""
+    raw = get_config_value("base_dir", str(DEFAULT_ATB_DIR))
+    return Path(raw) if raw else DEFAULT_ATB_DIR
+
+
+def get_apps_dir() -> Path:
+    """Retrieve the directory for wrapper applications."""
+    return get_base_dir() / "Apps"
+
+
+def get_data_dir() -> Path:
+    """Retrieve the directory for application clone data storage."""
+    return get_base_dir() / "Data"
+
+
+def check_directory_access(path: Path) -> tuple[bool, str]:
+    """Check if a directory exists (or can be created) and has read/write permissions.
+
+    Returns:
+        tuple[bool, str]: (passed, details). If passed is True, details is 'OK'.
+                          If passed is False, details describes the error.
+    """
+    import os
+    import uuid
+
+    try:
+        path.mkdir(parents=True, exist_ok=True)
+    except Exception as e:
+        return False, str(e)
+
+    test_file = path / f".atbclone_perm_test_{os.getpid()}_{uuid.uuid4().hex[:8]}"
+    try:
+        test_file.write_text("ok", encoding="utf-8")
+        content = test_file.read_text(encoding="utf-8")
+        if content != "ok":
+            return False, "Read-back verification failed"
+        test_file.unlink(missing_ok=True)
+        return True, "OK"
+    except Exception as e:
+        if test_file.exists():
+            try:
+                test_file.unlink()
+            except OSError:
+                pass
+        return False, str(e)
+

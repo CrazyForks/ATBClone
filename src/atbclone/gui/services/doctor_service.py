@@ -5,6 +5,7 @@ import shutil
 import subprocess
 import sys
 
+from atbclone.core.config import check_directory_access, get_apps_dir, get_data_dir
 from atbclone.core.i18n import t
 from atbclone.core.logger import get_logger
 
@@ -145,6 +146,26 @@ class DoctorService:
                     details=f"Python {py_ver} (requires >= 3.10)",
                     hint="Upgrade your Python installation",
                 ))
+
+            # 5. Apps directory permission
+            apps_dir = get_apps_dir()
+            apps_passed, apps_detail = check_directory_access(apps_dir)
+            items.append(DoctorCheckItem(
+                name=t("doctor_item_apps_dir"),
+                passed=apps_passed,
+                details=f"{t('doctor_rw_normal')} ({apps_dir})" if apps_passed else f"{t('doctor_rw_failed')} ({apps_detail})",
+                hint="" if apps_passed else t("doctor_hint_dir_perm", path=str(apps_dir)),
+            ))
+
+            # 6. Data directory permission
+            data_dir = get_data_dir()
+            data_passed, data_detail = check_directory_access(data_dir)
+            items.append(DoctorCheckItem(
+                name=t("doctor_item_data_dir"),
+                passed=data_passed,
+                details=f"{t('doctor_rw_normal')} ({data_dir})" if data_passed else f"{t('doctor_rw_failed')} ({data_detail})",
+                hint="" if data_passed else t("doctor_hint_dir_perm", path=str(data_dir)),
+            ))
 
             passed_cnt = sum(1 for i in items if i.passed)
             total_cnt = len(items)

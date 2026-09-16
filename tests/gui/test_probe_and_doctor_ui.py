@@ -15,10 +15,17 @@ from atbclone.gui.views.probe_view import ProbeView
 
 def test_doctor_view_render():
     async def _test():
+        from atbclone.core.i18n import t
+
         doctor_service = DoctorService()
+        items = await doctor_service.check_environment()
+        item_names = [i.name for i in items]
+        assert t("doctor_item_apps_dir") in item_names
+        assert t("doctor_item_data_dir") in item_names
+
         view = DoctorView(doctor_service=doctor_service)
         await view.run_checks()
-        assert len(view.table.data) >= 3
+        assert len(view.table.data) >= 5
         assert hasattr(view, "btn_install_xcode")
 
     asyncio.run(_test())

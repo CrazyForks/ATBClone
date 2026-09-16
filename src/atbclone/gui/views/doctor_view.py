@@ -110,7 +110,11 @@ class DoctorView(toga.Box):
                 passed_count += 1
                 status_icon = t("doctor_status_ok")
             else:
-                status_icon = t("doctor_status_missing")
+                if item.name in ("codesign", "xcode-select", "PlistBuddy"):
+                    status_icon = t("doctor_status_missing")
+                else:
+                    status_icon = t("doctor_status_failed")
+
                 if item.name == "xcode-select":
                     xcode_select_passed = False
                 elif item.name == "codesign":

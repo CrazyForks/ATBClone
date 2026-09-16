@@ -31,7 +31,29 @@ def test_doctor_all_passed():
         assert "/usr/libexec/PlistBuddy" in result.output
         assert "✓" in result.output
         assert "✗" not in result.output
+        assert "Application Directory Permissions" in result.output or "应用程序目录权限" in result.output
+        assert "Data Storage Directory Permissions" in result.output or "数据存储目录权限" in result.output
+        assert "Read/Write OK" in result.output or "读写正常" in result.output
         assert mock_run.call_count == 3
+
+
+def test_doctor_dir_permission_failed():
+    runner = CliRunner()
+
+    def mock_check_output(cmd, *args, **kwargs):
+        return "/path\n"
+
+    def mock_dir_access(path):
+        if "Apps" in str(path):
+            return True, "OK"
+        return False, "Permission denied mock"
+
+    with patch("subprocess.check_output", side_effect=mock_check_output), \
+         patch("atbclone.cli.cmd_doctor.check_directory_access", side_effect=mock_dir_access):
+        result = runner.invoke(cli, ["doctor"])
+        assert result.exit_code == 1
+        assert "✗" in result.output
+        assert "Permission denied mock" in result.output
 
 
 def test_doctor_one_failed():

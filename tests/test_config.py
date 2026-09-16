@@ -96,3 +96,41 @@ def test_corrupted_config_handling(tmp_path, monkeypatch):
 
     assert load_config() == {}
     assert get_config_value("anything", "default") == "default"
+
+
+def test_get_base_dir_and_subdirs(tmp_path, monkeypatch):
+    test_cfg = tmp_path / "config.yaml"
+    monkeypatch.setattr(config, "DEFAULT_CONFIG_FILE", test_cfg)
+    monkeypatch.setattr(config, "DEFAULT_ATB_DIR", tmp_path / "DefaultATB")
+
+    # When no base_dir set, defaults to DEFAULT_ATB_DIR
+    assert config.get_base_dir() == tmp_path / "DefaultATB"
+    assert config.get_apps_dir() == tmp_path / "DefaultATB" / "Apps"
+    assert config.get_data_dir() == tmp_path / "DefaultATB" / "Data"
+
+    # When custom base_dir is set in config
+    custom_dir = tmp_path / "CustomBase"
+    set_config_value("base_dir", str(custom_dir))
+    assert config.get_base_dir() == custom_dir
+    assert config.get_apps_dir() == custom_dir / "Apps"
+    assert config.get_data_dir() == custom_dir / "Data"
+
+
+def test_check_directory_access_success(tmp_path):
+    target = tmp_path / "test_access_dir"
+    passed, detail = config.check_directory_access(target)
+    assert passed is True
+    assert detail == "OK"
+    assert target.exists()
+    assert target.is_dir()
+    # Ensure temporary probe file is removed
+    assert len(list(target.glob(".atbclone_perm_test_*"))) == 0
+
+
+def test_check_directory_access_failure(tmp_path, monkeypatch):
+    # Test directory creation failure
+    target = tmp_path / "blocked"
+    monkeypatch.setattr(Path, "mkdir", lambda *args, **kwargs: (_ for _ in ()).throw(PermissionError("Mock write denied")))
+    passed, detail = config.check_directory_access(target)
+    assert passed is False
+    assert "Mock write denied" in detail
