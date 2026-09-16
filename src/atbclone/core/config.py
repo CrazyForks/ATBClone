@@ -65,6 +65,8 @@ def save_config(cfg: dict) -> None:
     try:
         with os.fdopen(temp_fd, "w", encoding="utf-8") as f:
             yaml.safe_dump(cfg, f, allow_unicode=True, sort_keys=False)
+            f.flush()
+            os.fsync(f.fileno())
         os.chmod(temp_path, 0o600)
         os.replace(temp_path, DEFAULT_CONFIG_FILE)
     except Exception:

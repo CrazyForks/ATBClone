@@ -104,7 +104,11 @@ class LogsView(toga.Box):
         if loop and loop.is_running():
             loop.call_soon_threadsafe(_apply)
         else:
-            _apply()
+            import threading
+            if threading.current_thread() is threading.main_thread():
+                # Main thread with no running loop (e.g., sync tests or early startup)
+                _apply()
+            # Background thread with no loop: silently drop — entry is on disk already.
 
     def _update_log_display(self):
         query = self._current_filter.strip().lower()

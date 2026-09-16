@@ -238,6 +238,12 @@ class ATBCloneApp(toga.App):
             set_macos_dock_visible(True)
         except Exception as e:
             logger.warning(f"Error during on_app_exit cleanup: {e}")
+        # Deregister live log listener to avoid dangling reference in logger._listeners
+        try:
+            if hasattr(self, "logs_view") and self.logs_view and hasattr(self.logs_view, "cleanup"):
+                self.logs_view.cleanup()
+        except Exception:
+            pass
         return True
 
     def show_main_window(self) -> None:

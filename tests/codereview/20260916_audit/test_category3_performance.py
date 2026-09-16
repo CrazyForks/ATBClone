@@ -111,13 +111,15 @@ def test_apfs_copy_command_in_scripts(tmp_path):
         SoftCloneEngine.execute(task)
         assert len(captured_scripts) == 1
         assert "cp -Rc" in captured_scripts[0]
-        assert "2>/dev/null || cp -R" in captured_scripts[0]
+        assert "2>/dev/null || (rm -rf" in captured_scripts[0]
+        assert "cp -R" in captured_scripts[0]
 
         # In HardCloneEngine
         task.recipe.strategy = "hard_clone"
         HardCloneEngine.execute(task)
         assert len(captured_scripts) == 2
         assert "cp -Rc" in captured_scripts[1]
-        assert "2>/dev/null || cp -R" in captured_scripts[1]
+        assert "2>/dev/null || (rm -rf" in captured_scripts[1]
+        assert "cp -R" in captured_scripts[1]
     finally:
         runner_mod.Runner.run = orig_run

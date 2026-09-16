@@ -708,7 +708,7 @@ mkdir -p {dst_mac}
 {codex_init_cmd}{gemini_init_cmd}{claude_init_cmd}# Copy Resources dir so the app icon (.icns) and other assets are available
 
 if [ -d {src_resources} ]; then
-    cp -Rc {src_resources} {dst_resources} 2>/dev/null || cp -R {src_resources} {dst_resources}
+    cp -Rc {src_resources} {dst_resources} 2>/dev/null || (rm -rf {dst_resources} 2>/dev/null; cp -R {src_resources} {dst_resources})
 fi
 cp {src_plist} {dst_plist}
 chmod -R u+w {dst_app} 2>/dev/null || true
@@ -1473,7 +1473,7 @@ done
 mkdir -p {dst_parent}
 mkdir -p {data_dir}
 rm -rf {dst}
-{codex_init_cmd}{gemini_init_cmd}{claude_init_cmd}cp -Rc {src} {dst} 2>/dev/null || cp -R {src} {dst}
+{codex_init_cmd}{gemini_init_cmd}{claude_init_cmd}cp -Rc {src} {dst} 2>/dev/null || (rm -rf {dst} 2>/dev/null; cp -R {src} {dst})
 
 chmod -R u+w {dst} 2>/dev/null || true
 /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier {task.new_bundle_id}" {dst_plist}
