@@ -116,7 +116,10 @@ ATBClone solves this by injecting dynamic environment hooks directly into the ho
 
 #### 3. Static Headroom Probing & Graceful Fallback
 To ensure that modifying Mach-O Load Commands never corrupts packed or non-standard binaries, the engine inspects available header padding:
-$$\text{Padding} = \text{first\_section\_offset} - (32 + \text{sizeofcmds})$$
+
+$$
+\text{Padding} = \text{first\_section\_offset} - (32 + \text{sizeofcmds})
+$$
 
 * **Sufficient Headroom**: Automatically activates native in-process dylib injection (e.g., WeChat with 50KB+ free padding).
 * **Insufficient Headroom or CLI Arguments Required**: Gracefully falls back to a compiled **Native Mach-O C Launcher**, guaranteeing zero binary corruption.

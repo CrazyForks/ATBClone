@@ -9,10 +9,14 @@ site_dir         = "site/zh-hant"
 
 extra_javascript = [
   "javascripts/language-detector.js",
-  "javascripts/ascii-diagram.js"
+  "javascripts/ascii-diagram.js",
+  "https://unpkg.com/katex@0/dist/katex.min.js",
+  "https://unpkg.com/katex@0/dist/contrib/auto-render.min.js",
+  "javascripts/katex.js"
 ]
 extra_css = [
-  "stylesheets/extra.css"
+  "stylesheets/extra.css",
+  "https://unpkg.com/katex@0/dist/katex.min.css"
 ]
 
 nav = [

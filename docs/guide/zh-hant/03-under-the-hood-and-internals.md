@@ -114,7 +114,10 @@ macOS 的兩大系統元件：
 
 #### 3. 靜態 Headroom 探測與優雅降級
 為防止在非標準編譯器或緊湊打包的應用上強行追加指令損壞 Mach-O Section，引擎內建靜態頭部空間探測器：
-$$\text{Padding} = \text{first\_section\_offset} - (32 + \text{sizeofcmds})$$
+
+$$
+\text{Padding} = \text{first\_section\_offset} - (32 + \text{sizeofcmds})
+$$
 
 * **頭部空間充足時**：自動啟用原生動態庫無感注入（如微信剩餘 50KB+，安全注入）；
 * **頭部空間不足或需啟動引數時**：自動平滑降級為輕量編譯的 **原生 Mach-O C 啟動器包裝**，徹底杜絕應用崩潰風險。

@@ -114,7 +114,10 @@ macOS 的两大系统组件：
 
 #### 3. 静态 Headroom 探测与优雅降级
 为防止在非标准编译器或紧凑打包的应用上强行追加指令损坏 Mach-O Section，引擎内置静态头部空间探测器：
-$$\text{Padding} = \text{first\_section\_offset} - (32 + \text{sizeofcmds})$$
+
+$$
+\text{Padding} = \text{first\_section\_offset} - (32 + \text{sizeofcmds})
+$$
 
 * **头部空间充足时**：自动启用原生动态库无感注入（如微信剩余 50KB+，安全注入）；
 * **头部空间不足或需启动参数时**：自动平滑降级为轻量编译的 **原生 Mach-O C 启动器包装**，彻底杜绝应用崩溃风险。
