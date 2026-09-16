@@ -2,6 +2,37 @@
 
 # ATBClone Release Notes
 
+## [v1.9.0] - 2026-09-16
+
+### ⚡ APFS Copy-on-Write (CoW) Cloning & Engine Performance
+- **Instantaneous Zero-Copy Cloning**:
+  - Implemented APFS Copy-on-Write (`cp -Rc`) cloning on macOS APFS volumes, enabling instantaneous cloning of gigabyte-scale applications with zero initial disk overhead.
+  - Added robust fallback to standard recursive copying (`cp -R`) with automatic partial-destination cleanup to prevent directory nesting corruption on non-APFS volumes.
+  - Integrated hardware SIMD pre-filtering in binary string probing, dramatically accelerating application argument and environment variable discovery.
+  - Safe Mach-O binary skipping during wrapper script inspection and non-destructive entitlement pruning.
+
+### 🔒 Concurrency Safety & Atomic State Persistence
+- **Zero Race Conditions**:
+  - Implemented cross-process `flock` file locking for clone state mutations, guaranteeing data consistency during concurrent clone operations and CLI commands.
+  - Atomic configuration and state persistence using temporary files, forced filesystem sync (`fsync`), and secure `0o600` file permissions to prevent data corruption and unauthorized read access.
+  - Thread-local `fake_pw` isolation in Cocoa interpose dynamic library hook, ensuring multi-threaded process safety.
+
+### 🖥️ GUI / HIG Polish & System Stability
+- **Interface & Lifecycle Hardening**:
+  - Resolved `LogsView` memory leak by enforcing bounded buffer retention and threadsafe dispatching to the main Cocoa event loop.
+  - Added lifecycle cleanup handler on application shutdown to deregister log listeners cleanly.
+  - Restored secondary windows (Wizard, Clone Edit, Recipe Edit, Clone Detail) to standard window level (`0`), preventing dialogs from floating over other macOS applications.
+  - Improved Dark Mode UI contrast, persistent custom `base_dir` configurations, and automatic Keychain proxy credential cleanup.
+  - Standardized Chinese product branding to **ATB分身助手** across all interfaces and documentation.
+
+### 📚 Multilingual Documentation Site & Quality Assurance
+- **Official Documentation Portal (`clone.aitobox.com`)**:
+  - Launched static documentation site powered by Zensical with automated GitHub Pages deployment.
+  - Complete 9-language documentation matrix with localized UI walkthrough screenshots and synchronized navigation.
+  - Expanded test suite with 22 new regression test cases (610 total tests, 100% pass rate).
+
+---
+
 ## [v1.8.0] - 2026-09-13
 
 ### 📢 ATBCmder Promotion Card & [AD] Badge in Navigation Sidebar

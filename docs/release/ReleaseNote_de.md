@@ -2,6 +2,37 @@
 
 # ATBClone Versionshinweise (Release Notes)
 
+## [v1.9.0] - 2026-09-16
+
+### ⚡ APFS Copy-on-Write (CoW) Klonen & Engine-Leistungssteigerung
+- **Sofortiges Klonen ohne Speicherplatzverlust**:
+  - Implementierung von Copy-on-Write (`cp -Rc`) auf macOS APFS-Dateisystemen; ermöglicht das sekundenschnelle Klonen großer Anwendungen ohne anfänglichen Speicherplatzbedarf.
+  - Robuste Fallback-Strategie auf rekursives Kopieren (`cp -R`) für Nicht-APFS-Volumes mit automatischer Bereinigung unvollständiger Verzeichnisse zur Vermeidung von Dateisystemfehlern.
+  - Hardware-SIMD-beschleunigte Vorfilterung bei der Prüfung von Binärzeichenfolgen zur spürbaren Beschleunigung der Argument- und Umgebungsvariablenerkennung.
+  - Sicheres Überspringen von Mach-O-Binärdateien bei Wrapper-Skript-Prüfungen und zerstörungsfreie Bereinigung von Signatur-Entitlements.
+
+### 🔒 Prozessübergreifende Dateisperren & atomare Persistenz
+- **Beseitigung von Race Conditions**:
+  - Einsatz von `flock`-basierten Dateisperren zur Gewährleistung konsistenter Lese- und Schreibvorgänge bei parallelen Klon- oder CLI-Aufrufen.
+  - Atomare Konfigurations- und Zustandsspeicherung mittels temporärer Dateien, `fsync`-Puffersynchronisierung und restriktiver `0o600`-Dateiberechtigungen.
+  - Thread-lokale `fake_pw`-Isolierung im dynamischen Cocoa-Interpose-Hook für vollständige Multi-Threading-Sicherheit.
+
+### 🖥️ GUI / HIG-Feinschliff & Speicheroptimierung
+- **Native Benutzeroberfläche & Lebenszyklus-Härtung**:
+  - Behebung eines Speicherlecks in `LogsView` durch Begrenzung des Log-Puffers und threadsichere Weiterleitung an den Haupt-Cocoa-Event-Loop.
+  - Saubere Abmeldung von Live-Log-Listenern beim Beenden der Anwendung.
+  - Korrektur der Fensterhierarchie: Sekundärfenster (Assistent, Klon-Bearbeitung, Rezeptur-Bearbeitung, Detailansicht) auf die Standardebene (`0`) zurückgesetzt, um störendes dauerhaftes Überlagern anderer macOS-Apps zu verhindern.
+  - Verbesserter Kontrast im Dunkelmodus, dauerhafte Speicherung benutzerdefinierter Klon-Pfade (`base_dir`) und rückstandslose Bereinigung von Schlüsselbund-Proxy-Anmeldedaten beim Löschen.
+  - Vereinheitlichung des chinesischen Produktnamens auf **ATB分身助手**.
+
+### 📚 Mehrsprachiges Dokumentationsportal & Qualitätssicherung
+- **Offizielles Dokumentationsportal (`clone.aitobox.com`)**:
+  - Neuer statischer Dokumentationsauftritt mit Zensical-Theme und automatisierter GitHub Pages-Bereitstellung.
+  - Vollständige 9-Sprachen-Matrix mit synchronisierter Navigation und lokalisierten UI-Screenshots.
+  - Erweiterung der Testsuite um 22 Regressionstests auf insgesamt **610 Tests** (100% Erfolgsquote).
+
+---
+
 ## [v1.8.0] - 2026-09-13
 
 ### 📢 ATBCmder-Werbekarte & [AD]-Kennzeichnung in der Navigations-Seitenleiste

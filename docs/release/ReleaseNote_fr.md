@@ -2,6 +2,37 @@
 
 # Notes de publication d'ATBClone (Release Notes)
 
+## [v1.9.0] - 2026-09-16
+
+### ⚡ Clonage APFS Copy-on-Write (CoW) et performances du moteur
+- **Clonage instantané sans duplication de stockage**:
+  - Activation complète du mécanisme Copy-on-Write (`cp -Rc`) sur les volumes APFS macOS : duplication instantanée d'applications volumineuses sans coût initial d'espace disque.
+  - Mécanisme de repli robuste vers la copie récursive standard (`cp -R`) avec nettoyage préalable des dossiers temporaires pour prévenir la corruption par imbrication sur volumes non-APFS.
+  - Pré-filtrage accéléré par SIMD matériel pour l'analyse des chaînes binaires, accélérant considérablement la détection des arguments et des variables d'environnement.
+  - Ignorance sécurisée des binaires Mach-O lors de l'inspection des scripts wrappers et nettoyage sûr des entitlements de signature.
+
+### 🔒 Verrous de fichiers inter-processus et persistance atomique
+- **Élimination complète des conditions de concurrence**:
+  - Mise en œuvre de verrous de fichiers basés sur `flock` pour garantir la cohérence des lectures et écritures de statut lors d'opérations simultanées.
+  - Écriture atomique des fichiers de configuration et d'état (fichier temporaire + `fsync` + `os.replace`) avec restrictions de permissions à `0o600`.
+  - Isolation thread-locale de `fake_pw` dans le hook interpose Cocoa pour une sécurité totale en environnement multithread.
+
+### 🖥️ Polissage de l'interface graphique (HIG) et stabilité mémoire
+- **Interface native et cycle de vie renforcé**:
+  - Résolution d'une fuite de mémoire dans `LogsView` grâce à un tampon circulaire borné et une transmission sécurisée vers la boucle principale Cocoa.
+  - Désenregistrement automatique des écouteurs de logs lors de l'arrêt de l'application (`_on_app_exit`).
+  - Rétablissement du niveau de fenêtre standard (`0`) pour les boîtes de dialogue secondaires (Assistant, Édition, Recette, Détails), évitant leur maintien artificiel au premier plan au-dessus des autres applications macOS.
+  - Amélioration du contraste en mode sombre, persistance du chemin racine personnalisé (`base_dir`) et suppression automatique des identifiants proxy du trousseau d'accès lors de la suppression d'un clone.
+  - Harmonisation du nom de produit en chinois : **ATB分身助手**.
+
+### 📚 Portail de documentation en 9 langues et assurance qualité
+- **Nouveau portail de documentation officiel (`clone.aitobox.com`)**:
+  - Déploiement d'un site statique moderne avec le thème Zensical et synchronisation automatisée via GitHub Pages.
+  - Matrice documentaire complète dans les 9 langues avec navigation multilingue unifiée et captures d'écran guidées.
+  - Ajout de 22 tests de non-régression portant la suite à **610 tests** avec un taux de réussite de 100%.
+
+---
+
 ## [v1.8.0] - 2026-09-13
 
 ### 📢 Carte de promotion ATBCmder et badge [AD] dans la barre latérale
