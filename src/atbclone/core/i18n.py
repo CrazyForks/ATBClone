@@ -4078,15 +4078,15 @@ MESSAGES: dict[str, dict[str, str]] = {
 
     # --- GUI Settings & Release Notes ---
     "settings_btn_check_update": {
-        "en": "Check for Updates",
-        "zh": "检查更新",
-        "zh_TW": "檢查更新",
-        "ja": "アップデートを確認",
-        "ko": "업데이트 확인",
-        "de": "Nach Updates suchen",
-        "fr": "Vérifier les mises à jour",
-        "ru": "Проверить обновления",
-        "es": "Buscar actualizaciones",
+        "en": "🔄 Check for Updates",
+        "zh": "🔄 检查更新",
+        "zh_TW": "🔄 檢查更新",
+        "ja": "🔄 アップデートを確認",
+        "ko": "🔄 업데이트 확인",
+        "de": "🔄 Nach Updates suchen",
+        "fr": "🔄 Vérifier les mises à jour",
+        "ru": "🔄 Проверить обновления",
+        "es": "🔄 Buscar actualizaciones",
     },
     "update_checking": {
         "en": "Checking for updates...",

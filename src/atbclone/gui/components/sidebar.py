@@ -1,15 +1,20 @@
-"""Modern macOS-style compact Sidebar Navigation component."""
-
+import asyncio
+import os
 import webbrowser
 from typing import Callable, Dict
 import toga
 from toga.style import Pack
-from toga.style.pack import COLUMN, ROW, CENTER
+from toga.style.pack import COLUMN, ROW, CENTER, HIDDEN, VISIBLE
 from atbclone import __version__
 from atbclone.core.i18n import t
+from atbclone.core.logger import get_logger
 from atbclone.core.resources import get_app_icon_path, get_cmder_icon_path
+from atbclone.gui.components.wrapping_label import WrappingLabel
+from atbclone.gui.services.update_service import UpdateService
 from atbclone.gui.theme import Theme
 from atbclone.gui.patch_cocoa import configure_cocoa_sidebar_active, configure_cocoa_card
+
+logger = get_logger("gui.sidebar")
 
 
 class SidebarNav(toga.Box):
@@ -19,11 +24,18 @@ class SidebarNav(toga.Box):
     BOTTOM_NAV_KEYS = ["logs", "settings"]
     CMDER_WEBSITE_URL = "https://cmder.aitobox.com"
 
-    def __init__(self, on_select: Callable[[str], None], active_key: str = "clones"):
+    def __init__(
+        self,
+        on_select: Callable[[str], None],
+        active_key: str = "clones",
+        app: toga.App | None = None,
+    ):
         super().__init__(style=Pack(direction=COLUMN, width=200, margin=0, background_color=Theme.BG_SIDEBAR))
+        self.app_instance = app
         self.on_select = on_select
         self.active_key = active_key
         self.buttons: Dict[str, toga.Button] = {}
+        self.update_service = UpdateService()
 
         # Brand header with logo icon
         header_box = toga.Box(style=Pack(direction=ROW, align_items=CENTER, margin=(20, 14, 16, 14)))
@@ -77,6 +89,30 @@ class SidebarNav(toga.Box):
             )
             self.buttons[key] = btn
             self.bottom_box.add(btn)
+
+        # Check for Updates Section (below Settings)
+        self.btn_check_update = toga.Button(
+            t("settings_btn_check_update"),
+            on_press=self.on_check_update,
+            style=Pack(margin_top=2, margin_bottom=4, height=28, font_size=13),
+        )
+        self.bottom_box.add(self.btn_check_update)
+
+        # Progress bar: hidden initially
+        self.progress_bar = toga.ProgressBar(
+            max=100,
+            value=0,
+            style=Pack(margin_top=2, margin_bottom=2, visibility=HIDDEN),
+        )
+        self.bottom_box.add(self.progress_bar)
+
+        # Update status feedback label: wrapping label to prevent horizontal overflow
+        self.lbl_update_status = WrappingLabel(
+            "",
+            style=Pack(font_size=11, color=Theme.TEXT_MUTED, margin_top=2),
+        )
+        self.bottom_box.add(self.lbl_update_status)
+
         self.add(self.bottom_box)
 
         self._update_button_styles()
@@ -157,6 +193,97 @@ class SidebarNav(toga.Box):
             self.promo_subtitle_label.text = t("promo_cmder_subtitle")
         if hasattr(self, "promo_btn") and self.promo_btn:
             self.promo_btn.text = t("promo_cmder_btn")
+        if hasattr(self, "btn_check_update") and self.btn_check_update:
+            self.btn_check_update.text = t("settings_btn_check_update")
+
+    async def on_check_update(self, widget: toga.Button | None = None) -> None:
+        """Handle Check for Updates button press in sidebar."""
+        self.btn_check_update.enabled = False
+        self.lbl_update_status.text = t("update_checking")
+        self.progress_bar.style.visibility = VISIBLE
+        self.progress_bar.max = None
+        self.progress_bar.start()
+        logger.info("User initiated check for updates from sidebar")
+
+        try:
+            info = await self.update_service.check_for_updates()
+            if not info:
+                self.progress_bar.stop()
+                self.progress_bar.style.visibility = HIDDEN
+                self.lbl_update_status.text = t("update_already_latest", ver=__version__)
+                self.btn_check_update.enabled = True
+
+                async def _auto_clear():
+                    await asyncio.sleep(5)
+                    if self.lbl_update_status.text == t("update_already_latest", ver=__version__):
+                        self.lbl_update_status.text = ""
+
+                try:
+                    asyncio.create_task(_auto_clear())
+                except RuntimeError:
+                    pass
+                return
+
+            self.progress_bar.stop()
+            self.progress_bar.max = 100
+            self.progress_bar.value = 0
+            self.progress_bar.style.visibility = VISIBLE
+            self.lbl_update_status.text = t("update_found", ver=info.version)
+            logger.info(f"Update found: v{info.version}, starting download and install")
+
+            loop = asyncio.get_running_loop()
+
+            def _on_progress(downloaded: int, total: int) -> None:
+                if total > 0:
+                    pct = int(downloaded * 100 / total)
+                    msg = t("update_downloading", pct=pct)
+                else:
+                    pct = 0
+                    msg = t("update_downloading", pct=0)
+
+                def _ui_update():
+                    self.lbl_update_status.text = msg
+                    self.progress_bar.value = pct
+
+                loop.call_soon_threadsafe(_ui_update)
+
+            def _on_status(status_key: str) -> None:
+                if status_key == "downloading":
+                    msg = t("update_downloading", pct=0)
+                elif status_key == "verifying":
+                    msg = t("update_verifying")
+                elif status_key == "installing":
+                    msg = t("update_installing")
+                else:
+                    return
+
+                def _ui_status():
+                    self.lbl_update_status.text = msg
+
+                loop.call_soon_threadsafe(_ui_status)
+
+            await self.update_service.download_and_install(
+                info,
+                on_progress=_on_progress,
+                on_status=_on_status,
+            )
+
+            self.progress_bar.stop()
+            self.progress_bar.style.visibility = HIDDEN
+            self.lbl_update_status.text = t("update_done_title")
+            if self.app_instance and hasattr(self.app_instance, "main_window") and self.app_instance.main_window:
+                await self.app_instance.main_window.info_dialog(
+                    t("update_done_title"),
+                    t("update_done_msg", ver=info.version),
+                )
+            os._exit(0)
+
+        except Exception as e:
+            logger.exception("Update error")
+            self.progress_bar.stop()
+            self.progress_bar.style.visibility = HIDDEN
+            self.lbl_update_status.text = t("update_error", err=str(e))
+            self.btn_check_update.enabled = True
 
     def _create_select_handler(self, key: str):
         return lambda widget: self.select_item(key)

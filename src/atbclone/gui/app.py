@@ -153,7 +153,7 @@ class ATBCloneApp(toga.App):
         )
 
         # Left Sidebar Navigation
-        self.sidebar = SidebarNav(on_select=self.switch_view, active_key="clones")
+        self.sidebar = SidebarNav(on_select=self.switch_view, active_key="clones", app=self)
 
         # Right-side dynamic view container
         self.content_container = toga.Box(style=Pack(direction=COLUMN, flex=1, background_color=Theme.BG_WINDOW))
