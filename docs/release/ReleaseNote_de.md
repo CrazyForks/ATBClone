@@ -2,6 +2,29 @@
 
 # ATBClone Versionshinweise (Release Notes)
 
+## [v2.0.0] - 2026-09-17
+
+### 🏥 Umgebungsdiagnose (Doctor) & Verzeichnisberechtigungsprüfung
+- **Tiefgehende Überprüfung der Dateisystemberechtigungen**:
+  - Umfassende Erweiterung des Diagnosesystems (CLI `atbclone doctor` und GUI `DoctorView`) um Echtzeitprüfungen der Lese- und Schreibberechtigungen für das Anwendungsverzeichnis (`~/ATBClone/Apps`) und das Datenspeicherverzeichnis (`~/ATBClone/Data`).
+  - Aktive Erkennung von Berechtigungskonflikten mittels sicherer temporärer Test-Tokens vor dem Klonen oder Starten, um Laufzeitabbrüche zu verhindern.
+  - Detaillierte Rückmeldung mit Statusanzeigen, genauen Fehlermeldungen und konkreten Reparaturhinweisen (`chmod u+rwx <path>`).
+  - Neue Hilfsfunktionen `check_directory_access()`, `get_apps_dir()` und `get_data_dir()` in `core.config`.
+  - Vollständige Lokalisierung der Diagnosemeldungen, Status-Icons und Reparaturtipps in allen 9 unterstützten Sprachen.
+
+### 📐 KaTeX-Formel-Rendering & Layout im Dokumentationsportal
+- **Mathematische Typografie**:
+  - Integration der KaTeX-Rendering-Engine in allen 9 Sprachversionen des offiziellen Dokumentationsportals (`clone.aitobox.com`).
+  - Optimierung der LaTeX-Formelabstände und Layout-Qualität in den technischen Architekturdokumenten.
+
+### ⚡ Architektur-Reife & Qualitätssicherung (v2.0.0 Milestone)
+- **Hochleistungs-APFS-Engine & Concurrency**:
+  - Vollendung des v2.0-Fundaments: APFS Copy-on-Write (`cp -Rc`) Klonen ohne Speicherplatzverlust, SIMD-beschleunigte Binäranalyse und prozessübergreifende `flock`-Sperren.
+  - Erweiterung der Testsuite um Unit- und GUI-Tests für die Verzeichnisdiagnose (`test_cmd_doctor.py`, `test_config.py`, `test_probe_and_doctor_ui.py`).
+  - 614 automatisierte Tests erfolgreich bestanden (100% Erfolgsquote).
+
+---
+
 ## [v1.9.0] - 2026-09-16
 
 ### ⚡ APFS Copy-on-Write (CoW) Klonen & Engine-Leistungssteigerung

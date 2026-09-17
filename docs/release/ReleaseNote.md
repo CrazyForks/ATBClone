@@ -2,6 +2,29 @@
 
 # ATBClone Release Notes
 
+## [v2.0.0] - 2026-09-17
+
+### 🏥 Environment Health Diagnostics (Doctor) & Directory Permissions
+- **Deep Filesystem Permissions Verification**:
+  - Enhanced diagnostic subsystem (`atbclone doctor` and GUI `DoctorView`) with real-time read/write permission verification for the Application Directory (`~/ATBClone/Apps`) and Data Storage Directory (`~/ATBClone/Data`).
+  - Active probing using secure temporary tokens to detect permission denials before clone generation or app execution, preventing runtime crashes.
+  - Granular reporting with distinct status badges, detailed filesystem error explanations, and actionable remediation commands (`chmod u+rwx <path>`).
+  - Added `check_directory_access()`, `get_apps_dir()`, and `get_data_dir()` helper APIs in `core.config`.
+  - Added localized diagnostic strings and actionable hints across all 9 supported languages.
+
+### 📐 Documentation Portal Math Rendering & Formatting
+- **KaTeX Mathematical Typography**:
+  - Integrated KaTeX client-side math rendering engine across all 9 language editions of the documentation portal (`clone.aitobox.com`).
+  - Optimized LaTeX display formula spacing and formatting within technical architecture deep dives.
+
+### ⚡ Architectural Maturity & Quality Assurance (v2.0.0 Milestone)
+- **High-Performance APFS Engine & Concurrency**:
+  - Solidified the v2.0 foundation with APFS Copy-on-Write (`cp -Rc`) zero-space cloning, SIMD-accelerated binary analysis, and `flock`-backed atomic state persistence.
+  - Expanded test suite with comprehensive unit and GUI tests for directory diagnostics (`test_cmd_doctor.py`, `test_config.py`, `test_probe_and_doctor_ui.py`).
+  - All 614 automated test cases passing with a 100% success rate.
+
+---
+
 ## [v1.9.0] - 2026-09-16
 
 ### ⚡ APFS Copy-on-Write (CoW) Cloning & Engine Performance

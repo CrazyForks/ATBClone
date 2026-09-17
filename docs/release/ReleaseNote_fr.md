@@ -2,6 +2,29 @@
 
 # Notes de publication d'ATBClone (Release Notes)
 
+## [v2.0.0] - 2026-09-17
+
+### 🏥 Diagnostic de santé système (Doctor) et vérification des permissions
+- **Contrôle approfondi des accès aux répertoires**:
+  - Amélioration du sous-système de diagnostic (CLI `atbclone doctor` et interface `DoctorView`) avec vérification en temps réel des droits de lecture/écriture sur le répertoire des applications (`~/ATBClone/Apps`) et le répertoire des données (`~/ATBClone/Data`).
+  - Sondage actif via des jetons temporaires sécurisés pour détecter les refus d'accès avant la duplication ou le lancement d'instances.
+  - Rapports détaillés avec indicateurs d'état précis, explications des erreurs système et commandes correctives guidées (`chmod u+rwx <path>`).
+  - Nouvelles fonctions utilitaires `check_directory_access()`, `get_apps_dir()` et `get_data_dir()` dans `core.config`.
+  - Prise en charge i18n complète des messages de diagnostic et des conseils de remédiation dans les 9 langues.
+
+### 📐 Rendu mathématique KaTeX et mise en page de la documentation
+- **Typographie mathématique**:
+  - Intégration du moteur KaTeX sur l'ensemble des 9 versions linguistiques du portail officiel (`clone.aitobox.com`).
+  - Optimisation des espacements et du rendu des formules LaTeX dans les chapitres d'architecture technique.
+
+### ⚡ Maturité architecturale et assurance qualité (Jalon v2.0.0)
+- **Moteur APFS haute performance et synchronisation**:
+  - Consolidation des piliers v2.0 : clonage APFS Copy-on-Write (`cp -Rc`) instantané sans duplication de stockage, sondage binaire SIMD et verrous de fichiers `flock`.
+  - Élargissement de la couverture de tests unitaires et graphiques pour le diagnostic des répertoires (`test_cmd_doctor.py`, `test_config.py`, `test_probe_and_doctor_ui.py`).
+  - Les 614 tests automatisés sont validés à 100%.
+
+---
+
 ## [v1.9.0] - 2026-09-16
 
 ### ⚡ Clonage APFS Copy-on-Write (CoW) et performances du moteur
