@@ -111,19 +111,25 @@ class LogsView(toga.Box):
             # Background thread with no loop: silently drop — entry is on disk already.
 
     def _update_log_display(self):
-        query = self._current_filter.strip().lower()
-        if not query:
-            filtered = self._raw_log_lines
-        else:
-            filtered = [line for line in self._raw_log_lines if query in line.lower()]
+        try:
+            query = self._current_filter.strip().lower()
+            if not query:
+                filtered = self._raw_log_lines
+            else:
+                filtered = [line for line in self._raw_log_lines if query in line.lower()]
 
-        self.log_text.value = "\n".join(filtered)
-        count = len(filtered)
-        total = len(self._raw_log_lines)
-        if query:
-            self.top_bar.update_title(t("logs_title_filtered", count=count, total=total))
-        else:
-            self.top_bar.update_title(t("logs_title", total=total))
+            if hasattr(self, "log_text") and self.log_text:
+                self.log_text.value = "\n".join(filtered)
+            count = len(filtered)
+            total = len(self._raw_log_lines)
+            if hasattr(self, "top_bar") and self.top_bar:
+                if query:
+                    self.top_bar.update_title(t("logs_title_filtered", count=count, total=total))
+                else:
+                    self.top_bar.update_title(t("logs_title", total=total))
+        except Exception:
+            pass
+
 
 
     def on_filter_logs(self, query: str):

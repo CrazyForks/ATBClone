@@ -140,7 +140,7 @@ echo "[✔] All 9 ReleaseNotes contain entries for ${TAG_NAME}."
 
 # 4. Git Commit & Tag
 echo "==> [Step 4/6] Committing release and creating tag ${TAG_NAME}..."
-git add pyproject.toml src/atbclone/__init__.py README.md Readme.md Readme_zh.md docs/release/*.md scripts/release.sh scripts/build_cli.sh tests/conftest.py
+git add pyproject.toml src/atbclone/__init__.py src/atbclone/core/logger.py src/atbclone/gui/views/logs_view.py README.md Readme.md Readme_zh.md docs/release/*.md scripts/release.sh scripts/build_cli.sh tests/conftest.py
 # Commit only if there are staged changes
 if ! git diff --cached --quiet; then
     git commit -m "release: ${TAG_NAME}"

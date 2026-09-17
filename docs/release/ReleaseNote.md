@@ -2,6 +2,35 @@
 
 # ATBClone Release Notes
 
+## [v2.1.0] - 2026-09-17
+
+### 🚀 Distinct Process Names for Hard Clones & Proxy Rule Routing
+- **Process-Based Network Proxy Routing**:
+  - Hard clones now generate unique executable binary names and synchronized `CFBundleExecutable` entries (e.g. `<AppName>_<clone_name>`), enabling distinct macOS process identification.
+  - Full support for granular, per-clone proxy routing rules in proxy managers such as Clash, Surge, Loon, Stash, and Quantumult X (e.g., `PROCESS-NAME,<CloneProcessName>,<ProxyGroup>`).
+  - Robust handling of Electron and Chromium helper apps, preventing executable path collisions while maintaining IPC communication integrity.
+  - Seamlessly preserves custom process names and custom icons during clone editing, updates, or regeneration.
+
+### 🎨 Custom Application Icons in Cloning Wizard
+- **Personalized Visual Identity**:
+  - Added custom icon selection in `WizardWindow`, allowing users to assign custom `.icns` or `.png` graphics during clone creation.
+  - Live icon preview in the wizard interface with one-click restore to original app icon.
+  - Native icon replacement and format conversion in `Contents/Resources/`, maintaining custom icons across clone lifecycles.
+  - Localized UI labels and buttons across all 9 supported languages.
+
+### 🔄 Sidebar Bottom Auto-Update Control
+- **Streamlined Update Experience**:
+  - Relocated the update checker from Settings to the bottom of the navigation sidebar for immediate visibility and access.
+  - Integrated animated refresh icon, live version feedback, and inline percentage progress bar for downloads.
+  - Simplified Settings view, focusing purely on application preferences.
+
+### 🧪 Comprehensive Quality Assurance
+- **Expanded Test Suite**:
+  - Added unit and integration tests for process renaming, helper path preservation, icon updates, and sidebar UI state (`test_process_names.py`, `test_update_icon.py`).
+  - Test suite expanded to **642 automated tests** with 100% pass rate.
+
+---
+
 ## [v2.0.0] - 2026-09-17
 
 ### 🏥 Environment Health Diagnostics (Doctor) & Directory Permissions

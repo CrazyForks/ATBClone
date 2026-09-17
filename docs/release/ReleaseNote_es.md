@@ -2,6 +2,35 @@
 
 # Notas de la versión de ATBClone (Release Notes)
 
+## [v2.1.0] - 2026-09-17
+
+### 🚀 Nombres de proceso únicos para Hard Clones y enrutamiento en proxies
+- **Enrutamiento proxy preciso basado en procesos**:
+  - El motor de clonación Hard Clone ahora genera un nombre de binario ejecutable único y sincroniza la clave `CFBundleExecutable` para cada clon (p. ej., `<AppName>_<NombreClon>`).
+  - Compatibilidad total con reglas de enrutamiento por proceso en gestores como Clash, Surge, Loon, Stash y Quantumult X (`PROCESS-NAME,<NombreProcesoClon>,<GrupoProxy>`), permitiendo asignar proxies o IPs independientes a cada clon.
+  - Compatibilidad exhaustiva con los procesos auxiliares (Helper Apps) de Electron y Chromium, preservando la comunicación IPC sin colisiones de nombres.
+  - Conservación automática de nombres de procesos e iconos personalizados al editar, actualizar o reconstruir clones.
+
+### 🎨 Iconos de aplicación personalizados en el asistente de clonación
+- **Personalización visual de clones**:
+  - Incorporación de selección de icono personalizado (`.icns` o `.png`) directamente en el asistente de creación (`WizardWindow`).
+  - Vista previa en tiempo real en la interfaz del asistente con opción para restablecer el icono predeterminado.
+  - Reemplazo y conversión nativa dentro de `Contents/Resources/`, manteniendo el icono a través de futuras actualizaciones.
+  - Traducción completa de los controles e indicadores en los 9 idiomas disponibles.
+
+### 🔄 Control de actualización permanente en la parte inferior de la barra lateral
+- **Experiencia de actualización unificada**:
+  - Traslado de la comprobación de actualizaciones desde Ajustes hacia la parte inferior de la barra lateral de navegación para mayor accesibilidad.
+  - Icono animado, información de versión en tiempo real y barra de progreso porcentual durante la descarga.
+  - Vista de Ajustes simplificada y enfocada en las preferencias generales.
+
+### 🧪 Aseguramiento de la calidad y pruebas automáticas
+- **Suite de pruebas ampliada**:
+  - Incorporación de pruebas unitarias y de integración para nombres de procesos, compatibilidad de Helpers, persistencia de iconos y UI de barra lateral (`test_process_names.py`, `test_update_icon.py`).
+  - Suite de pruebas ampliada a **642 pruebas automáticas** con un 100% de aprobación.
+
+---
+
 ## [v2.0.0] - 2026-09-17
 
 ### 🏥 Diagnóstico del entorno (Doctor) y verificación de permisos de carpetas

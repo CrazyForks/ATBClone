@@ -2,6 +2,35 @@
 
 # ATBClone Versionshinweise (Release Notes)
 
+## [v2.1.0] - 2026-09-17
+
+### 🚀 Eindeutige Prozessnamen für Hard Clones & Proxy-Regel-Routing
+- **Prozessbasiertes Netzwerk-Proxy-Routing**:
+  - Die Hard-Clone-Engine erzeugt nun für jeden Klon einen eindeutigen ausführbaren Binärnamen und passt `CFBundleExecutable` entsprechend an (z. B. `<App>_<Klonname>`).
+  - Vollständige Unterstützung für prozessbasierte Routing-Regeln in Proxy-Tools wie Clash, Surge, Loon, Stash und Quantumult X (`PROCESS-NAME,<KlonProzessname>,<ProxyGruppe>`), sodass Klone über unterschiedliche Proxys geleitet werden können.
+  - Robuste Handhabung von Electron- und Chromium-Helper-Apps zur Vermeidung von Namenskonflikten bei gleichzeitiger Gewährleistung stabiler IPC-Kommunikation.
+  - Automatische Beibehaltung eindeutiger Prozessnamen und benutzerdefinierter Icons bei Klon-Bearbeitungen, Aktualisierungen und Neuerstellungen.
+
+### 🎨 Benutzerdefinierte App-Icons im Klon-Assistenten
+- **Personalisierte visuelle Gestaltung**:
+  - Auswahl benutzerdefinierter Icons im Erstellungsassistenten (`WizardWindow`) für `.icns`- und `.png`-Dateien hinzugefügt.
+  - Sofortige Vorschau des gewählten Icons im Assistenten mit Ein-Klick-Möglichkeit zur Wiederherstellung des Original-Icons.
+  - Automatische Konvertierung und Integration im Verzeichnis `Contents/Resources/` mit dauerhafter Speicherung bei Updates.
+  - Vollständige 9-Sprachen-Übersetzung der Auswahl-, Lösch- und Dialogtexte.
+
+### 🔄 Aktualisierungsbereich dauerhaft in der Seitenleiste unten
+- **Optimiertes Update-Erlebnis**:
+  - Verlagerung der Update-Prüfung von den Einstellungen an das untere Ende der Navigations-Seitenleiste für sofortigen Zugriff.
+  - Dynamisches Aktualisierungs-Icon, Echtzeit-Statusanzeige und integrierter Prozent-Fortschrittsbalken beim Download.
+  - Übersichtlicherer Einstellungsbereich, fokussiert auf allgemeine Konfigurationsoptionen.
+
+### 🧪 Umfassende Qualitätssicherung
+- **Erweiterte Testsuite**:
+  - Neue Tests für Prozessnamensvergabe, Helper-Pfade, Icon-Persistenz und Seitenleisten-UI (`test_process_names.py`, `test_update_icon.py`).
+  - Testsuite auf **642 automatisierte Tests** (100% Erfolgsquote) erweitert.
+
+---
+
 ## [v2.0.0] - 2026-09-17
 
 ### 🏥 Umgebungsdiagnose (Doctor) & Verzeichnisberechtigungsprüfung

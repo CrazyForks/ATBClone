@@ -118,3 +118,9 @@ def remove_log_listener(callback: Callable[[str], None]) -> None:
     """Remove a registered listener callback."""
     if callback in _listeners:
         _listeners.remove(callback)
+
+
+def clear_log_listeners() -> None:
+    """Clear all registered live log listeners."""
+    _listeners.clear()
+

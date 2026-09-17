@@ -2,6 +2,35 @@
 
 # Notes de publication d'ATBClone (Release Notes)
 
+## [v2.1.0] - 2026-09-17
+
+### 🚀 Noms de processus distincts pour les Hard Clones et routage de proxy
+- **Routage réseau précis basé sur le nom du processus**:
+  - Le moteur de clonage matériel attribue désormais des noms d'exécutables uniques synchronisés avec `CFBundleExecutable` (ex. `<App>_<NomClone>`) pour chaque clone.
+  - Prise en charge native des règles de routage par processus dans les gestionnaires de proxy tels que Clash, Surge, Loon, Stash et Quantumult X (`PROCESS-NAME,<NomProcessusClone>,<ProxyPolicy>`).
+  - Compatibilité renforcée avec les sous-processus Helper d'Electron et Chromium, préservant la stabilité des flux IPC.
+  - Préservation intégrale des noms de processus distincts et des icônes personnalisées lors de l'édition ou de la mise à jour des clones.
+
+### 🎨 Icônes d'application personnalisées dans l'assistant de clonage
+- **Personnalisation graphique intuitive**:
+  - Intégration du choix d'icônes personnalisées (`.icns` ou `.png`) directement dans l'assistant de création (`WizardWindow`).
+  - Prévisualisation instantanée de l'icône dans l'assistant avec restauration en un clic de l'icône par défaut.
+  - Remplacement et conversion automatisés dans `Contents/Resources/`, conservés de façon pérenne au fil des mises à jour.
+  - Traduction intégrale des boutons et libellés dans les 9 langues supportées.
+
+### 🔄 Contrôle de mise à jour permanent en bas de barre latérale
+- **Accès simplifié aux mises à jour**:
+  - Déplacement du module de vérification des mises à jour des Paramètres vers le bas de la barre latérale de navigation.
+  - Icône animée, retour d'état en temps réel et barre de progression intégrée en pourcentage pendant le téléchargement.
+  - Interface des Paramètres allégée et Recentée sur les préférences générales.
+
+### 🧪 Assurance qualité et extension de la suite de tests
+- **Couverture exhaustive des tests**:
+  - Ajout de tests unitaires et d'intégration pour le renommage de processus, la conservation des chemins Helper et la persistance des icônes (`test_process_names.py`, `test_update_icon.py`).
+  - Suite de tests portée à **642 tests automatisés** avec un taux de réussite de 100%.
+
+---
+
 ## [v2.0.0] - 2026-09-17
 
 ### 🏥 Diagnostic de santé système (Doctor) et vérification des permissions

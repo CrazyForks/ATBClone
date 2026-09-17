@@ -13,6 +13,10 @@ def default_test_environment(monkeypatch):
         monkeypatch.setenv("ATBCLONE_LANG", "en")
     set_language(None)
     asyncio.set_event_loop_policy(asyncio.DefaultEventLoopPolicy())
+    from atbclone.core.logger import clear_log_listeners
+    clear_log_listeners()
     yield
+    clear_log_listeners()
     set_language(None)
+
 
