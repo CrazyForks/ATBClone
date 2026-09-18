@@ -1,6 +1,7 @@
 """Unit tests for CloneEngines (SoftCloneEngine and HardCloneEngine) and CloneTask."""
 
 import shlex
+import subprocess
 from pathlib import Path
 from unittest.mock import patch
 
@@ -783,6 +784,21 @@ class TestProcessSingletonFrameworkPatching:
             # Ensure generic singleton patch is skipped for Lark
             assert "Patch ProcessSingleton in embedded frameworks" not in script
 
+            # Verify Mach-O C launcher compiles cleanly with clang without 'redefinition of dir'
+            start_marker = "<< 'LAUNCHER_C_EOF'\n"
+            end_marker = "LAUNCHER_C_EOF"
+            assert start_marker in script
+            c_source = script.split(start_marker)[1].split(end_marker)[0]
+            clang_cmd = HardCloneEngine._resolve_clang_command()
+            proc = subprocess.run(
+                f"{clang_cmd} -fsyntax-only -x c -",
+                shell=True,
+                input=c_source,
+                capture_output=True,
+                text=True,
+            )
+            assert proc.returncode == 0, f"Clang syntax check failed:\n{proc.stderr}"
+
     def test_hard_clone_script_omits_lark_isolation_for_non_lark_apps(self, sample_task):
         sample_task.source.bundle_id = "com.google.Chrome"
         sample_task.recipe.patch_lark_isolation = False
@@ -803,6 +819,21 @@ class TestProcessSingletonFrameworkPatching:
             assert "Delete :CFBundleURLTypes" in script
             # Ensure generic singleton patch is skipped for ChatGPT
             assert "Patch ProcessSingleton in embedded frameworks" not in script
+
+            # Verify Mach-O C launcher compiles cleanly with clang without 'redefinition of dir'
+            start_marker = "<< 'LAUNCHER_C_EOF'\n"
+            end_marker = "LAUNCHER_C_EOF"
+            assert start_marker in script
+            c_source = script.split(start_marker)[1].split(end_marker)[0]
+            clang_cmd = HardCloneEngine._resolve_clang_command()
+            proc = subprocess.run(
+                f"{clang_cmd} -fsyntax-only -x c -",
+                shell=True,
+                input=c_source,
+                capture_output=True,
+                text=True,
+            )
+            assert proc.returncode == 0, f"Clang syntax check failed:\n{proc.stderr}"
 
     def test_hard_clone_script_includes_isolation_hook_for_chatgpt_chat_id(self, sample_task):
         sample_task.source.bundle_id = "com.openai.chat"

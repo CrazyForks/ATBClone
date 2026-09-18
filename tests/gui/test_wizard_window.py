@@ -430,3 +430,11 @@ def test_wizard_original_icon_and_source_change():
     assert wizard.icon_path is None
     assert wizard.icon_preview.image is not None
     assert wizard.icon_preview.image is not original
+
+
+def test_wizard_load_original_icon_handles_none_app_info():
+    wizard = WizardWindow()
+    wizard.app_info = None
+    wizard._load_original_icon()  # Must not raise AttributeError
+    assert wizard._original_icon is None
+

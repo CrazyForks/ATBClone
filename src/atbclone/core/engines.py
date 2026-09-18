@@ -381,18 +381,20 @@ class CloneEngine:
 
         hook_block = ""
         if hook_dylib_rel_path:
-            hook_block = f"""    char exe_buf[PATH_MAX];
-    uint32_t exe_buf_size = sizeof(exe_buf);
-    if (_NSGetExecutablePath(exe_buf, &exe_buf_size) != 0) return 1;
-    char *dir = dirname(exe_buf);
-    const char *existing_dyld = getenv("DYLD_INSERT_LIBRARIES");
-    char hook_path[PATH_MAX * 2];
-    if (existing_dyld && strlen(existing_dyld) > 0) {{
-        snprintf(hook_path, sizeof(hook_path), "%s:%s/{hook_dylib_rel_path}", existing_dyld, dir);
-    }} else {{
-        snprintf(hook_path, sizeof(hook_path), "%s/{hook_dylib_rel_path}", dir);
+            hook_block = f"""    {{
+        char hook_exe_buf[PATH_MAX];
+        uint32_t hook_exe_size = sizeof(hook_exe_buf);
+        if (_NSGetExecutablePath(hook_exe_buf, &hook_exe_size) != 0) return 1;
+        char *hook_dir = dirname(hook_exe_buf);
+        const char *existing_dyld = getenv("DYLD_INSERT_LIBRARIES");
+        char hook_path[PATH_MAX * 2];
+        if (existing_dyld && strlen(existing_dyld) > 0) {{
+            snprintf(hook_path, sizeof(hook_path), "%s:%s/{hook_dylib_rel_path}", existing_dyld, hook_dir);
+        }} else {{
+            snprintf(hook_path, sizeof(hook_path), "%s/{hook_dylib_rel_path}", hook_dir);
+        }}
+        setenv("DYLD_INSERT_LIBRARIES", hook_path, 1);
     }}
-    setenv("DYLD_INSERT_LIBRARIES", hook_path, 1);
 """
 
         c_source = f"""#include <unistd.h>
@@ -1169,7 +1171,8 @@ CHATGPT_HOOK_EOF
     @staticmethod
     def _build_process_name_cmd(task: CloneTask, main_binary: Path) -> str:
         """Rename real Mach-O processes, retaining aliases for hardcoded helper paths."""
-        args = shlex.join([str(task.dest_path), task.clone_name, str(main_binary)])
+        rel_plist = getattr(task.source, "relative_plist_path", Path("Contents/Info.plist"))
+        args = shlex.join([str(task.dest_path), task.clone_name, str(main_binary), str(rel_plist)])
         return f"python3 - {args} << 'PROCESS_NAMES_PY'\n" + textwrap.dedent(r'''
             import os
             import plistlib
@@ -1179,38 +1182,63 @@ CHATGPT_HOOK_EOF
             from pathlib import Path
 
             app, name, main = Path(sys.argv[1]), sys.argv[2], Path(sys.argv[3])
-            root_plist = app / "Contents/Info.plist"
-            entry = app / "Contents/MacOS" / plistlib.loads(root_plist.read_bytes())["CFBundleExecutable"]
+            rel_plist_str = sys.argv[4] if len(sys.argv) > 4 else "Contents/Info.plist"
+            root_plist = app / rel_plist_str
+            if not root_plist.is_file():
+                root_plist = app / "Contents/Info.plist"
+            if not root_plist.is_file():
+                sys.exit(0)
+
+            try:
+                root_data = plistlib.loads(root_plist.read_bytes())
+            except Exception:
+                sys.exit(0)
+
+            root_exe = root_data.get("CFBundleExecutable")
+            if not isinstance(root_exe, str) or not root_exe:
+                sys.exit(0)
+
+            entry = (root_plist.parent / "MacOS" / root_exe) if (root_plist.parent / "MacOS").is_dir() else (root_plist.parent / root_exe)
 
             def is_executable(path):
                 """Identify thin or universal Mach-O executable files without loading their contents."""
-                with path.open("rb") as f:
-                    magic = f.read(4)
-                    if magic in (b"\xca\xfe\xba\xbe", b"\xca\xfe\xba\xbf"):
-                        # Universal binaries: inspect the first architecture's Mach-O header.
-                        f.seek(16)
-                        wide = magic == b"\xca\xfe\xba\xbf"
-                        offset = struct.unpack(">Q" if wide else ">I", f.read(8 if wide else 4))[0]
-                        f.seek(offset)
+                try:
+                    with path.open("rb") as f:
                         magic = f.read(4)
-                    if magic in (b"\xcf\xfa\xed\xfe", b"\xce\xfa\xed\xfe"):
-                        endian = "<"
-                    elif magic in (b"\xfe\xed\xfa\xcf", b"\xfe\xed\xfa\xce"):
-                        endian = ">"
-                    else:
-                        return False
-                    header = f.read(12)
-                    return len(header) == 12 and struct.unpack(endian + "III", header)[2] == 2  # MH_EXECUTE
+                        if magic in (b"\xca\xfe\xba\xbe", b"\xca\xfe\xba\xbf"):
+                            # Universal binaries: inspect the first architecture's Mach-O header.
+                            f.seek(16)
+                            wide = magic == b"\xca\xfe\xba\xbf"
+                            data = f.read(8 if wide else 4)
+                            if len(data) < (8 if wide else 4):
+                                return False
+                            offset = struct.unpack(">Q" if wide else ">I", data)[0]
+                            f.seek(offset)
+                            magic = f.read(4)
+                        if magic in (b"\xcf\xfa\xed\xfe", b"\xce\xfa\xed\xfe"):
+                            endian = "<"
+                        elif magic in (b"\xfe\xed\xfa\xcf", b"\xfe\xed\xfa\xce"):
+                            endian = ">"
+                        else:
+                            return False
+                        header = f.read(12)
+                        return len(header) == 12 and struct.unpack(endian + "III", header)[2] == 2  # MH_EXECUTE
+                except Exception:
+                    return False
 
             moves, plists = {}, []
-            for directory, _, files in os.walk(app / "Contents", followlinks=False):
+            walk_dir = app / "Contents" if (app / "Contents").is_dir() else app
+            for directory, _, files in os.walk(walk_dir, followlinks=False):
                 for filename in files:
                     path = Path(directory) / filename
                     if path.is_symlink() or not path.is_file():
                         continue
                     if filename == "Info.plist":
                         plists.append(path)
-                    if not os.access(path, os.X_OK) or not is_executable(path):
+                    try:
+                        if not os.access(path, os.X_OK) or not is_executable(path):
+                            continue
+                    except Exception:
                         continue
                     new_name = name if path == main else name + ("-Launcher" if path == entry else "-" + filename)
                     target = path.with_name(new_name)
@@ -1228,11 +1256,14 @@ CHATGPT_HOOK_EOF
 
             updates = []
             for plist in plists:
-                data = plistlib.loads(plist.read_bytes())
+                try:
+                    data = plistlib.loads(plist.read_bytes())
+                except Exception:
+                    continue
                 executable = data.get("CFBundleExecutable")
                 if not isinstance(executable, str):
                     continue
-                folder = plist.parent / "MacOS" if plist.parent.name == "Contents" else plist.parent
+                folder = (plist.parent / "MacOS") if (plist.parent / "MacOS").is_dir() else plist.parent
                 target = moves.get(folder / executable)
                 if target:
                     data["CFBundleExecutable"] = target.name
@@ -1251,7 +1282,10 @@ CHATGPT_HOOK_EOF
                 if old not in targets:
                     old.symlink_to(target.name)
             for plist, data in updates:
-                plist.write_bytes(plistlib.dumps(data))
+                try:
+                    plist.write_bytes(plistlib.dumps(data))
+                except Exception:
+                    pass
         ''') + "PROCESS_NAMES_PY\n"
 
     @classmethod

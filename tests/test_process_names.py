@@ -137,3 +137,73 @@ def test_helper_name_collision_preserves_original_paths(bundle, launcher):
         assert not path.is_symlink()
         assert path.read_bytes() == data
     assert plist.read_bytes() == original_plist
+
+
+def test_process_names_handles_missing_and_corrupted_bundle_gracefully(bundle, tmp_path):
+    """Ensure process renaming exits gracefully instead of crashing on missing or corrupted bundles."""
+    task, macos = bundle
+    # 1. Missing Info.plist: should exit cleanly with 0
+    (task.dest_path / "Contents/Info.plist").unlink()
+    script = HardCloneEngine._build_process_name_cmd(task, macos / "Original")
+    res = subprocess.run(["/bin/bash", "-ec", script], capture_output=True, text=True, check=False)
+    assert res.returncode == 0
+
+    # 2. Info.plist missing CFBundleExecutable: should exit cleanly with 0
+    (task.dest_path / "Contents/Info.plist").write_bytes(plistlib.dumps({"CFBundleIdentifier": "com.test"}))
+    script = HardCloneEngine._build_process_name_cmd(task, macos / "Original")
+    res = subprocess.run(["/bin/bash", "-ec", script], capture_output=True, text=True, check=False)
+    assert res.returncode == 0
+
+    # 3. Truncated or corrupt binary file: should not crash is_executable with struct.error
+    (task.dest_path / "Contents/Info.plist").write_bytes(
+        plistlib.dumps({"CFBundleIdentifier": "com.test", "CFBundleExecutable": "Original"})
+    )
+    corrupt = macos / "corrupt_mach_o"
+    corrupt.write_bytes(b"\xca\xfe")  # truncated fat header
+    corrupt.chmod(0o755)
+    script = HardCloneEngine._build_process_name_cmd(task, macos / "Original")
+    res = subprocess.run(["/bin/bash", "-ec", script], capture_output=True, text=True, check=False)
+    assert res.returncode == 0
+
+
+def test_process_names_respects_relative_plist_path(tmp_path):
+    """Ensure process renaming respects task.source.relative_plist_path for non-standard bundles."""
+    app = tmp_path / "Wrapped.app"
+    inner_plist = app / "WrappedBundle/Info.plist"
+    inner_plist.parent.mkdir(parents=True)
+    inner_macos = app / "WrappedBundle/MacOS"
+    inner_macos.mkdir(parents=True)
+
+    metadata = {"CFBundleIdentifier": "com.atbclone.wrapped", "CFBundleExecutable": "InnerApp"}
+    inner_plist.write_bytes(plistlib.dumps(metadata))
+
+    bin_path = inner_macos / "InnerApp"
+    # Write minimal executable
+    source = tmp_path / "inner.c"
+    source.write_text("int main(void){return 0;}")
+    subprocess.run(["clang", str(source), "-o", str(bin_path)], check=True)
+
+    task = CloneTask(
+        source=AppInfo(
+            path=app,
+            bundle_id="com.atbclone.wrapped",
+            app_name="Wrapped",
+            executable=bin_path,
+            has_sandbox=False,
+            is_ios_app=False,
+            relative_plist_path=Path("WrappedBundle/Info.plist"),
+        ),
+        dest_path=app,
+        data_dir=tmp_path / "Data",
+        clone_name="WrappedClone",
+        new_bundle_id="com.atbclone.wrapped.clone",
+        recipe=Recipe(bundle_id="com.atbclone.wrapped", app_name="Wrapped", strategy="hard_clone"),
+    )
+
+    script = HardCloneEngine._build_process_name_cmd(task, bin_path)
+    res = subprocess.run(["/bin/bash", "-ec", script], capture_output=True, text=True, check=False)
+    assert res.returncode == 0
+    updated_plist = plistlib.loads(inner_plist.read_bytes())
+    assert updated_plist["CFBundleExecutable"] == "WrappedClone"
+    assert (inner_macos / "WrappedClone").is_file()
+

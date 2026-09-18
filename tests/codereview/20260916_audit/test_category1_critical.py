@@ -67,7 +67,7 @@ class TestCategory1EnginesAndLauncher:
             data_dir=tmp_path,
             hook_dylib_rel_path="../Frameworks/libhook.dylib",
         )
-        assert "char *dir = dirname(exe_buf);" in cmd
+        assert "char *hook_dir = dirname(hook_exe_buf);" in cmd
         assert "_NSGetExecutablePath" in cmd
         assert 'snprintf(hook_path, sizeof(hook_path), "%s:%s/../Frameworks/libhook.dylib"' in cmd
 

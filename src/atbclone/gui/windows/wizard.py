@@ -353,6 +353,8 @@ class WizardWindow(toga.Window):
 
     def _load_original_icon(self):
         """Use Finder's icon, including apps whose icon lives in an asset catalog."""
+        if not self.app_info or not getattr(self.app_info, "path", None):
+            return
         if self._icon_source_path == self.app_info.path:
             return
         self._icon_source_path = self.app_info.path
