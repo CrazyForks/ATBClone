@@ -2,6 +2,30 @@
 
 # Notas de la versión de ATBClone (Release Notes)
 
+## [v2.1.1] - 2026-09-18
+
+### 🔧 Corrección de alcance de variables en el lanzador C y robustez
+- **Resolución de errores de compilación del lanzador para Lark y ChatGPT**:
+  - Corrección de un fallo de compilación en C derivado del conflicto de nombres (redefinición de `dir`) en el lanzador generado para aplicaciones con inyección de bibliotecas dinámicas (como Lark/Feishu y ChatGPT).
+  - Aislamiento del bloque `hook_block` dentro de un bloque compuesto independiente `{ ... }` en el generador, evitando colisiones de variables.
+  - Incorporación de pruebas de compilación reales con `clang` para los lanzadores de Lark y ChatGPT.
+
+### 🛡️ Mayor solidez al renombrar procesos y tolerancia a bundles no estándar
+- **Manejo seguro de excepciones y degradación elegante**:
+  - Robustecimiento del renombrado de binarios y sincronización de `Info.plist` ante estructuras de paquetes inusuales, plists ausentes o binarios corruptos.
+  - Degradación segura a las rutas predeterminadas con avisos claros en el registro, sin interrumpir el proceso de clonación.
+  - Pruebas adicionales para bundles anómalos y escenarios de respaldo.
+
+### 🎨 Protección contra valores nulos en la vista previa de iconos del asistente
+- **Estabilidad de la interfaz**:
+  - Añadida verificación de seguridad contra nulos en el visor de iconos de `WizardWindow` para evitar excepciones de interfaz con aplicaciones de metadatos incompletos.
+
+### 🧪 Aseguramiento de la calidad y pruebas automáticas
+- **Suite de pruebas ampliada**:
+  - Conjunto de pruebas ampliado a **645 pruebas automáticas** con un 100% de aprobación.
+
+---
+
 ## [v2.1.0] - 2026-09-17
 
 ### 🚀 Nombres de proceso únicos para Hard Clones y enrutamiento en proxies

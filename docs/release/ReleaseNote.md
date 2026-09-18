@@ -2,6 +2,30 @@
 
 # ATBClone Release Notes
 
+## [v2.1.1] - 2026-09-18
+
+### 🔧 C Launcher Variable Scope Fix & Compilation Resilience
+- **Resolved Launcher Compilation Error in Hooked Applications**:
+  - Fixed a C compilation failure caused by variable scope shadowing (`dir` redefinition) in generated C launchers for applications with custom dynamic library hooks (such as Lark/Feishu and ChatGPT).
+  - Enclosed `hook_block` logic in an isolated compound scope block `{ ... }` within the C launcher generator, preventing variable name collisions.
+  - Added real `clang` compilation tests for Lark and ChatGPT launcher templates to guarantee ongoing compiler compatibility.
+
+### 🛡️ Process Name Rewriting Hardening & Non-Standard Bundle Resilience
+- **Robust Exception Handling**:
+  - Hardened executable binary renaming and `Info.plist` synchronization against non-standard bundle layouts, missing plists, or corrupted binaries.
+  - Gracefully falls back to standard execution paths with clear warning logs instead of aborting the cloning pipeline.
+  - Added comprehensive test suites covering malformed bundles and fallback scenarios.
+
+### 🎨 Wizard Icon Preview Null-Safety Guard
+- **Interface Stability**:
+  - Added null-safety check in `WizardWindow` icon preview loader to prevent edge-case UI exceptions when scanning apps with incomplete metadata.
+
+### 🧪 Comprehensive Quality Assurance
+- **Expanded Test Suite**:
+  - Test suite expanded to **645 automated tests** with a 100% pass rate.
+
+---
+
 ## [v2.1.0] - 2026-09-17
 
 ### 🚀 Distinct Process Names for Hard Clones & Proxy Rule Routing

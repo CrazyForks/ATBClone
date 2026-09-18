@@ -2,6 +2,30 @@
 
 # Notes de publication d'ATBClone (Release Notes)
 
+## [v2.1.1] - 2026-09-18
+
+### 🔧 Correction de la portée des variables du lanceur C et robustesse
+- **Résolution des erreurs de compilation du lanceur pour Lark et ChatGPT**:
+  - Correction d'une erreur de compilation C provoquée par un conflit de portée (redéfinition de la variable `dir`) dans le lanceur généré pour les applications utilisant des hooks de bibliothèques dynamiques (telles que Lark/Feishu et ChatGPT).
+  - Encapsulation de la logique `hook_block` dans un bloc d'instructions isolé `{ ... }` au sein du générateur pour éliminer tout risque de collision.
+  - Ajout de tests de compilation réels avec `clang` pour les modèles de lanceurs Lark et ChatGPT.
+
+### 🛡️ Robustesse du renommage des processus et tolérance aux bundles non standard
+- **Gestion sécurisée des exceptions et repli automatique**:
+  - Renforcement du renommage du binaire exécutable et de la mise à jour d'`Info.plist` face aux architectures de bundle non conventionnelles, plists manquants ou binaires corrompus.
+  - Repli sécurisé vers le comportement par défaut avec journalisation claire, évitant tout arrêt brutal du clonage.
+  - Couverture de tests accrue pour les cas d'erreur de structure de bundle.
+
+### 🎨 Sécurisation de la prévisualisation des icônes dans l'assistant
+- **Stabilité de l'interface graphique**:
+  - Ajout d'une vérification de pointeur nul dans le chargeur d'icônes de `WizardWindow` pour prévenir les plantages en présence de métadonnées d'applications partielles.
+
+### 🧪 Assurance qualité et suite de tests
+- **Couverture de tests exhaustive**:
+  - Suite de tests portée à **645 tests automatisés** avec un taux de réussite de 100%.
+
+---
+
 ## [v2.1.0] - 2026-09-17
 
 ### 🚀 Noms de processus distincts pour les Hard Clones et routage de proxy

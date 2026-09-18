@@ -2,6 +2,30 @@
 
 # ATBClone Versionshinweise (Release Notes)
 
+## [v2.1.1] - 2026-09-18
+
+### 🔧 C-Launcher-Variablenbereich korrigiert & Kompilierung gehärtet
+- **Behebung von Kompilierungsfehlern bei Hook-Anwendungen (Lark/ChatGPT)**:
+  - Behebung eines C-Kompilierungsfehlers durch Namenskonflikte (`dir`-Neudefinition) im generierten C-Launcher für Anwendungen mit dynamischen Bibliotheks-Hooks (z. B. Lark/Feishu und ChatGPT).
+  - Einkapselung der `hook_block`-Logik in einen isolierten Block `{ ... }` im Launcher-Generator zur Vermeidung von Variablenkollisionen.
+  - Echte `clang`-Kompilierungstests für Lark- und ChatGPT-Launcher-Vorlagen hinzugefügt, um Compiler-Kompatibilität sicherzustellen.
+
+### 🛡️ Gehärtete Prozessnamensumbenennung & Fehlertoleranz für Nicht-Standard-Bundles
+- **Robuste Fehlerbehandlung & Fallback**:
+  - Zuverlässige Fehlerbehandlung beim Umbenennen ausführbarer Dateien und beim Abgleich der `Info.plist` bei ungewöhnlichen Bundle-Strukturen, fehlenden Plists oder beschädigten Binärdateien.
+  - Automatischer Fallback auf den Standardpfad mit informativen Warnprotokollen ohne Abbruch des Klonvorgangs.
+  - Erweiterte Tests für fehlerhafte Bundles und Fallback-Verhalten.
+
+### 🎨 Null-Safety im Klon-Assistenten bei der Icon-Vorschau
+- **UI-Stabilität**:
+  - Abfangprüfung im `WizardWindow` bei der Icon-Vorschau integriert, um Ausnahmen bei unvollständigen Anwendungsmetadaten zu verhindern.
+
+### 🧪 Umfassende Qualitätssicherung
+- **Erweiterte Testsuite**:
+  - Testsuite auf **645 automatisierte Tests** (100% Erfolgsquote) erweitert.
+
+---
+
 ## [v2.1.0] - 2026-09-17
 
 ### 🚀 Eindeutige Prozessnamen für Hard Clones & Proxy-Regel-Routing
