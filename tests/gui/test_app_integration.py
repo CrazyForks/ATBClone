@@ -11,6 +11,7 @@ def test_app_creation_and_routing():
     app.startup()
 
     assert app.main_window is not None
+    assert app.main_window.size == (1300, 760)
     assert app.clone_view is not None
     assert app.recipe_view is not None
     assert app.probe_view is not None

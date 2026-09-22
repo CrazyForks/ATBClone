@@ -30,7 +30,7 @@ class SidebarNav(toga.Box):
         active_key: str = "clones",
         app: toga.App | None = None,
     ):
-        super().__init__(style=Pack(direction=COLUMN, width=200, margin=0, background_color=Theme.BG_SIDEBAR))
+        super().__init__(style=Pack(direction=COLUMN, width=240, margin=0, background_color=Theme.BG_SIDEBAR))
         self.app_instance = app
         self.on_select = on_select
         self.active_key = active_key

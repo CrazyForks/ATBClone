@@ -6,6 +6,7 @@ def test_sidebar_nav_initialization_and_selection():
     on_select = MagicMock()
     sidebar = SidebarNav(on_select=on_select, active_key="clones")
     assert sidebar.active_key == "clones"
+    assert sidebar.style.width == 240
 
     # Select recipes
     sidebar.select_item("recipes")

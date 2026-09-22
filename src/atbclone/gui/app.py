@@ -149,7 +149,7 @@ class ATBCloneApp(toga.App):
         # Main window setup
         self.main_window = toga.MainWindow(
             title=self.formal_name,
-            size=(1200, 680),
+            size=(1300, 760),
         )
 
         # Left Sidebar Navigation
