@@ -864,6 +864,80 @@ class TestProcessSingletonFrameworkPatching:
             assert "Patch ProcessSingleton in embedded frameworks" in script
 
 
+
+class TestHookDylibCompilation:
+    """Tests for real Clang compilation of hook dylib and env dylib C/Objective-C sources."""
+
+    def test_cocoa_hook_dylib_source_compilation_with_clang(self, tmp_path):
+        """Verify Cocoa/POSIX interpose hook Objective-C source compiles cleanly as a dylib."""
+        objc_source = HardCloneEngine._cocoa_hook_source()
+        clang_cmd = HardCloneEngine._resolve_clang_command()
+        dst_dylib = tmp_path / "libatbclone_hook_test.dylib"
+        cmd = f"{clang_cmd} -dynamiclib -O2 -framework Foundation -o '{dst_dylib}' -x objective-c -"
+        proc = subprocess.run(
+            cmd,
+            shell=True,
+            input=objc_source,
+            capture_output=True,
+            text=True,
+        )
+        assert proc.returncode == 0, f"Cocoa hook dylib compilation failed:\n{proc.stderr}"
+        assert dst_dylib.is_file()
+
+    def test_lark_and_chatgpt_isolation_dylib_snippets_compile_cleanly(self, sample_task, tmp_path):
+        """Verify the exact dylib source blocks extracted from Lark and ChatGPT isolation snippets compile."""
+        sample_task.source.bundle_id = "com.electron.lark"
+        lark_snippet = HardCloneEngine._build_lark_isolation_cmd(sample_task)
+        assert "<< 'LARK_HOOK_EOF'\n" in lark_snippet
+        lark_src = lark_snippet.split("<< 'LARK_HOOK_EOF'\n")[1].split("LARK_HOOK_EOF")[0]
+
+        sample_task.source.bundle_id = "com.openai.codex"
+        chatgpt_snippet = HardCloneEngine._build_chatgpt_isolation_cmd(sample_task)
+        assert "<< 'CHATGPT_HOOK_EOF'\n" in chatgpt_snippet
+        chatgpt_src = chatgpt_snippet.split("<< 'CHATGPT_HOOK_EOF'\n")[1].split("CHATGPT_HOOK_EOF")[0]
+
+        clang_cmd = HardCloneEngine._resolve_clang_command()
+        for name, src in [("lark", lark_src), ("chatgpt", chatgpt_src)]:
+            dst_dylib = tmp_path / f"libhook_{name}.dylib"
+            cmd = f"{clang_cmd} -dynamiclib -O2 -framework Foundation -o '{dst_dylib}' -x objective-c -"
+            proc = subprocess.run(
+                cmd,
+                shell=True,
+                input=src,
+                capture_output=True,
+                text=True,
+            )
+            assert proc.returncode == 0, f"{name} isolation dylib compilation failed:\n{proc.stderr}"
+            assert dst_dylib.is_file()
+
+    def test_env_injection_dylib_source_compilation_with_clang(self, sample_task, tmp_path):
+        """Verify environment injection C dylib (atbclone_env_init) compiles cleanly."""
+        effective_env = {"HOME": "{{ATB_DATA_DIR}}/Home", "MY_VAR": "value"}
+        cmd_snippet = CloneEngine._build_dylib_env_cmd(
+            dst_frameworks=str(tmp_path),
+            effective_env=effective_env,
+            proxy_env='export HTTP_PROXY="http://127.0.0.1:8080"',
+            lang_env="",
+            data_dir=sample_task.data_dir,
+            bin_orig=str(sample_task.source.executable),
+        )
+        assert "<< 'ATB_DYLIB_EOF'\n" in cmd_snippet
+        c_src = cmd_snippet.split("<< 'ATB_DYLIB_EOF'\n")[1].split("ATB_DYLIB_EOF")[0]
+
+        clang_cmd = CloneEngine._resolve_clang_command()
+        dst_dylib = tmp_path / "libatbclone_env_test.dylib"
+        cmd = f"{clang_cmd} -dynamiclib -O2 -o '{dst_dylib}' -x c -"
+        proc = subprocess.run(
+            cmd,
+            shell=True,
+            input=c_src,
+            capture_output=True,
+            text=True,
+        )
+        assert proc.returncode == 0, f"Env injection dylib compilation failed:\n{proc.stderr}"
+        assert dst_dylib.is_file()
+
+
 class TestCefFrameworkPatchingAndSymlinks:
     """Tests for Chromium Embedded Framework (CEF) patch gating and symlink whitelist generation."""
 
