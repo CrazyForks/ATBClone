@@ -2,6 +2,36 @@
 
 # Notes de publication d'ATBClone (Release Notes)
 
+## [v2.2.0] - 2026-09-22
+
+### 📝 Notes de clone et recherche avec filtrage instantané
+- **Annotations personnalisées pour chaque clone**:
+  - Ajout du champ `notes` dans le modèle de données `CloneRecord` et la fenêtre `CloneEditWindow` pour renseigner le compte, l'usage, la région ou des étiquettes personnalisées.
+  - Nouvelle colonne « Notes » dans la vue en tableau de `CloneListView` avec prise en charge du tri par clic sur l'en-tête (croissant/décroissant).
+  - Intégration de la recherche floue sur le texte des notes dans la barre d'outils supérieure pour retrouver instantanément n'importe quel clone.
+  - Affichage direct d'un extrait de note sur les vignettes `CloneCard` lorsqu'une note est présente.
+  - Traduction intégrale des libellés et des champs de saisie dans les 9 langues prises en charge.
+
+### 📐 Ergonomie améliorée de la fenêtre principale et de la barre latérale
+- **Espace de travail et lisibilité accrus**:
+  - Dimensions par défaut de la fenêtre principale portées à `1300 x 760` (au lieu de 1200 x 680) pour un confort visuel optimal des tableaux et grilles.
+  - Élargissement de la barre latérale gauche à `240px` (au lieu de 200px), offrant plus de clarté pour les libellés, les compteurs et l'état des mises à jour.
+
+### 🔬 Vérification de la compilation Clang pour les bibliothèques dynamiques
+- **Fiabilité accrue des hooks de bas niveau**:
+  - Ajout de tests d'intégration avec exécution réelle du compilateur `clang` pour valider les dylibs injectées :
+    - Dylib d'interposition Cocoa / POSIX (`libatbclone_hook`).
+    - Dylibs d'isolation multi-instances pour Lark (Feishu) et ChatGPT.
+    - Dylib d'injection des variables d'environnement (`libatbclone_env`).
+  - Élimination des régressions de compilation ou de syntaxe sur les chaînes de développement macOS.
+
+### 🧪 Extension de la suite de tests et indépendance de l'affichage
+- **Robustesse des tests d'intégration**:
+  - Découplage des assertions de taille de fenêtre vis-à-vis de la résolution de l'écran hôte pour une stabilité absolue en environnement CI et sans écran.
+  - Suite de tests portée à **648 tests automatisés** avec un taux de réussite de 100%.
+
+---
+
 ## [v2.1.1] - 2026-09-18
 
 ### 🔧 Correction de la portée des variables du lanceur C et robustesse

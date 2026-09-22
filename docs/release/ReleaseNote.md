@@ -2,6 +2,36 @@
 
 # ATBClone Release Notes
 
+## [v2.2.0] - 2026-09-22
+
+### 📝 Clone Notes & Instant Search Filtering
+- **Personalized Clone Annotations**:
+  - Added a dedicated `notes` field in `CloneRecord` and `CloneEditWindow`, allowing users to record custom context (e.g. account credentials hint, purpose, region, or profile tag).
+  - Added a new 'Notes' column in the `CloneListView` table view with support for header click sorting (ascending/descending).
+  - Integrated fuzzy search matching on notes text in the top toolbar search bar for rapid filtering across large clone libraries.
+  - Non-empty notes are neatly displayed on `CloneCard` with text truncation.
+  - Complete 9-language localization for notes labels and input placeholders.
+
+### 📐 Ergonomic Window & Sidebar Layout
+- **Enhanced Desktop Visibility**:
+  - Expanded default main window dimensions to `1300 x 760` (from 1200 x 680), providing optimal breathing room for wide tables and grid cards.
+  - Widened the left navigation sidebar to `240px` (from 200px), enhancing readability for navigation items, badges, and the update checker.
+
+### 🔬 Clang Compilation Verification for Dynamic Libraries
+- **Compiler-Level Hook Resilience**:
+  - Added automated integration tests invoking real `clang` compiler runs for all injected dynamic libraries:
+    - Cocoa / POSIX interpose hook dylibs (`libatbclone_hook`).
+    - Custom Lark/Feishu and ChatGPT process isolation dylibs.
+    - Environment variable injection dylibs (`libatbclone_env`).
+  - Guarantees seamless compilation without warnings or syntax regressions across macOS developer toolchains.
+
+### 🧪 Test Suite Expansion & Display-Independent Assertions
+- **Robust Continuous Testing**:
+  - Decoupled GUI integration tests from display-dependent window dimensions, ensuring deterministic test execution across headless and diverse multi-monitor environments.
+  - Automated test suite expanded to **648 tests** with a 100% pass rate.
+
+---
+
 ## [v2.1.1] - 2026-09-18
 
 ### 🔧 C Launcher Variable Scope Fix & Compilation Resilience

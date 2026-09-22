@@ -2,6 +2,36 @@
 
 # ATBClone Versionshinweise (Release Notes)
 
+## [v2.2.0] - 2026-09-22
+
+### 📝 Klon-Notizen & Sofortige Filtersuche
+- **Personalisierte Notizen für Klone**:
+  - Neues `notes`-Attribut in `CloneRecord` und `CloneEditWindow`, mit dem Benutzer individuelle Kontexte (z. B. Kontoname, Verwendungszweck, Region oder Tags) festhalten können.
+  - Neue Spalte „Notizen“ in der Tabellenansicht von `CloneListView` mit Kopfzeilen-Klick-Sortierung (aufsteigend/absteigend).
+  - Fuzzy-Suchunterstützung für Notizentexte in der oberen Symbolleisten-Suchleiste für sekundenschnelles Auffinden von Klonen.
+  - Übersichtliche Anzeige einer Vorschau auf der `CloneCard`, wenn Notizen vorhanden sind.
+  - Vollständige Lokalisierung in allen 9 unterstützten Sprachen für Beschriftungen und Platzhalter.
+
+### 📐 Ergonomisches Hauptfenster- & Seitenleisten-Layout
+- **Bessere Übersicht & großzügigerer Freiraum**:
+  - Vergrößerung der Standardabmessungen des Hauptfensters auf `1300 x 760` (vorher 1200 x 680) für mehr Übersichtlichkeit bei breiten Tabellen und Kachelansichten.
+  - Verbreiterung der linken Navigationsleiste auf `240px` (vorher 200px) für eine optimale Lesbarkeit von Menüpunkten, Zählern und dem Update-Status.
+
+### 🔬 Clang-Kompilierungsüberprüfung für dynamische Bibliotheken
+- **Robuste Low-Level-Hooks auf Compiler-Ebene**:
+  - Neue Integrationstests mit echtem Aufruf des `clang`-Compilers für alle dynamischen Bibliotheken hinzugefügt:
+    - Cocoa / POSIX Interpose-Hook-Dylibs (`libatbclone_hook`).
+    - Spezifische Isolations-Dylibs für Lark (Feishu) und ChatGPT.
+    - Umgebungsvariablen-Injektions-Dylib (`libatbclone_env`).
+  - Schutz vor Kompilierungsfehlern, Makrokonflikten und Ladeabbrüchen auf macOS.
+
+### 🧪 Erweiterte Testsuite & monitorunabhängige Zusicherungen
+- **Höchste Teststabilität**:
+  - Bereinigung von bildschirmauflösungsabhängigen Fenstergrößen-Zusicherungen in GUI-Tests für deterministische Ausführung in CI- und Headless-Umgebungen.
+  - Gesamtzahl automatisierter Tests auf **648 Tests** (100% Erfolgsquote) erweitert.
+
+---
+
 ## [v2.1.1] - 2026-09-18
 
 ### 🔧 C-Launcher-Variablenbereich korrigiert & Kompilierung gehärtet

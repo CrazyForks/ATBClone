@@ -2,6 +2,36 @@
 
 # Notas de la versión de ATBClone (Release Notes)
 
+## [v2.2.0] - 2026-09-22
+
+### 📝 Notas en clones y filtrado de búsqueda instantáneo
+- **Anotaciones personalizadas para clones**:
+  - Añadido el campo `notes` en `CloneRecord` y en la ventana de edición `CloneEditWindow` para guardar notas sobre la cuenta, propósito, región o etiquetas.
+  - Nueva columna «Notas» en la vista de tabla de `CloneListView` con ordenación por clic en el encabezado (ascendente/descendente).
+  - La barra de búsqueda de la barra de herramientas superior ahora incluye búsqueda difusa en las notas, permitiendo localizar cualquier clon rápidamente.
+  - En la vista de tarjetas (`CloneCard`) se muestra un resumen de las notas cuando existen.
+  - Localización completa en los 9 idiomas para etiquetas de notas y marcadores de posición.
+
+### 📐 Diseño ergonómico de ventana principal y barra lateral
+- **Mayor espacio visual y comodidad**:
+  - Las dimensiones predeterminadas de la ventana principal se amplían a `1300 x 760` (antes 1200 x 680), proporcionando un área más amplia para tablas y cuadrículas.
+  - La barra lateral de navegación izquierda pasa de 200px a `240px` de ancho, garantizando una lectura despejada de apartados, contadores y comprobador de actualizaciones.
+
+### 🔬 Verificación de compilación con Clang para bibliotecas dinámicas
+- **Robustez de hooks de bajo nivel**:
+  - Incorporadas pruebas de integración automatizadas que invocan el compilador real `clang` para validar todas las dylibs inyectadas:
+    - Bibliotecas dylib de interposición Cocoa / POSIX (`libatbclone_hook`).
+    - Dylibs personalizadas de aislamiento para Lark (Feishu) y ChatGPT.
+    - Dylib de inyección de variables de entorno (`libatbclone_env`).
+  - Garantiza la compilación limpia sin advertencias ni regresiones en las herramientas de desarrollo de macOS.
+
+### 🧪 Ampliación de la suite de pruebas e independencia de pantalla
+- **Mayor estabilidad en pruebas automáticas**:
+  - Desacopladas las aserciones de tamaño de ventana en pruebas GUI respecto a la resolución de la pantalla anfitriona, garantizando ejecuciones predecibles en entornos CI.
+  - Suite de pruebas ampliada a **648 pruebas automáticas** con un 100% de aprobados.
+
+---
+
 ## [v2.1.1] - 2026-09-18
 
 ### 🔧 Corrección de alcance de variables en el lanzador C y robustez
