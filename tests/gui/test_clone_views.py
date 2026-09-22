@@ -273,13 +273,17 @@ def test_clone_list_view_table_header_sort():
     view.on_table_header_sort(2, view.table.columns[2], ascending=True)
     assert [r.strategy for r in view._filtered_clones] == ["hard_clone", "soft_clone"]
 
-    # Sort column 4 (Created At) DESC
-    view.on_table_header_sort(4, view.table.columns[4], ascending=False)
+    # Sort column 4 (Notes) ASC — both empty, order preserved
+    view.on_table_header_sort(4, view.table.columns[4], ascending=True)
+    assert len(view._filtered_clones) == 2  # no crash, stable
+
+    # Sort column 5 (Created At) DESC
+    view.on_table_header_sort(5, view.table.columns[5], ascending=False)
     assert [r.clone_name for r in view._filtered_clones] == ["Alpha", "Beta"]
     assert view.top_bar.select_sort.value == view.sort_newest
 
-    # Sort column 4 (Created At) ASC
-    view.on_table_header_sort(4, view.table.columns[4], ascending=True)
+    # Sort column 5 (Created At) ASC
+    view.on_table_header_sort(5, view.table.columns[5], ascending=True)
     assert [r.clone_name for r in view._filtered_clones] == ["Beta", "Alpha"]
     assert view.top_bar.select_sort.value == view.sort_oldest
 

@@ -51,6 +51,13 @@ class CloneCard(toga.Box):
         body.add(toga.Label(t("card_label_path", path=Path(record.dest_path).name), style=Pack(font_size=12, color=Theme.TEXT_TERTIARY, margin_bottom=3)))
         proxy_info = redact_url_credentials(record.proxy_summary) if record.proxy_enabled else t("card_proxy_disabled")
         body.add(toga.Label(t("card_label_proxy", proxy_info=proxy_info), style=Pack(font_size=12, color=Theme.TEXT_TERTIARY)))
+        notes_raw = (getattr(record, "notes", "") or "").replace("\n", " ").replace("\r", "")
+        if notes_raw:
+            notes_display = (notes_raw[:40] + "…") if len(notes_raw) > 40 else notes_raw
+            body.add(toga.Label(
+                f"{t('win_edit_notes_label')} {notes_display}",
+                style=Pack(font_size=11.5, color=Theme.TEXT_TERTIARY, margin_top=3),
+            ))
         self.add(body)
 
         # Card Footer: Action buttons — use flex layout to prevent overflow on any card width

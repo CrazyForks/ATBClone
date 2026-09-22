@@ -91,6 +91,7 @@ class CloneListView(toga.Box):
                 t("list_col_source_app"),
                 t("list_col_strategy"),
                 t("list_col_proxy"),
+                t("list_col_notes"),
                 t("list_col_created_at"),
             ],
             multiple_select=True,
@@ -162,7 +163,9 @@ class CloneListView(toga.Box):
             self._filtered_clones.sort(key=lambda r: r.strategy.lower(), reverse=not ascending)
         elif col_index == 3:  # Proxy
             self._filtered_clones.sort(key=lambda r: (r.proxy_enabled, r.proxy_summary), reverse=not ascending)
-        elif col_index == 4:  # Created At
+        elif col_index == 4:  # Notes
+            self._filtered_clones.sort(key=lambda r: (getattr(r, "notes", "") or "").lower(), reverse=not ascending)
+        elif col_index == 5:  # Created At
             self._filtered_clones.sort(key=lambda r: r.created_at, reverse=not ascending)
             target_sort = self.sort_oldest if ascending else self.sort_newest
             self.selected_sort = target_sort
@@ -186,6 +189,7 @@ class CloneListView(toga.Box):
                 or self.search_query in r.source_app.lower()
                 or self.search_query in r.bundle_id.lower()
                 or self.search_query in r.strategy.lower()
+                or self.search_query in (getattr(r, "notes", "") or "").lower()
             ]
 
         # 2. Strategy / Proxy Category Filter
@@ -258,11 +262,14 @@ class CloneListView(toga.Box):
             table_data = []
             for r in self._filtered_clones:
                 proxy_str = redact_url_credentials(r.proxy_summary) if r.proxy_enabled else t("list_proxy_disabled")
+                notes_raw = (getattr(r, "notes", "") or "").replace("\n", " ").replace("\r", "")
+                notes_display = (notes_raw[:40] + "…") if len(notes_raw) > 40 else notes_raw
                 table_data.append((
                     r.clone_name,
                     r.source_app,
                     r.strategy,
                     proxy_str,
+                    notes_display,
                     r.created_at[:19] if len(r.created_at) >= 19 else r.created_at,
                 ))
             self.table.data = table_data

@@ -21,7 +21,7 @@ class CloneEditWindow(toga.Window):
         record: CloneRecord,
         on_save: Callable[[CloneRecord], Coroutine[Any, Any, None]] | None = None,
     ):
-        super().__init__(title=t("win_edit_title", name=record.clone_name), size=(520, 440))
+        super().__init__(title=t("win_edit_title", name=record.clone_name), size=(520, 490))
         configure_cocoa_window(self, floating=False)
         self.record = record
         self.on_save_callback = on_save
@@ -113,6 +113,13 @@ class CloneEditWindow(toga.Window):
             style=Pack(flex=1, font_size=12.0),
         )
 
+        # Notes field
+        self.input_notes = toga.MultilineTextInput(
+            value=getattr(record, "notes", "") or "",
+            placeholder=t("win_edit_notes_placeholder"),
+            style=Pack(flex=1, font_size=13, height=52),
+        )
+
         self.btn_save = toga.Button(t("btn_save_changes"), on_press=self.on_save_press, style=Pack(flex=1, margin_left=8, height=30, font_weight="bold", font_size=13))
         self.btn_cancel = toga.Button(t("btn_cancel"), on_press=lambda w: self.close(), style=Pack(flex=1, height=30, font_size=13))
 
@@ -145,6 +152,12 @@ class CloneEditWindow(toga.Window):
         row_lang.add(toga.Label(t("win_edit_language"), style=Pack(width=120, font_size=13, color=Theme.TEXT_PRIMARY)))
         row_lang.add(self.select_language)
         box.add(row_lang)
+
+        # Notes
+        row_notes = toga.Box(style=Pack(direction=ROW, align_items=CENTER, margin_bottom=12))
+        row_notes.add(toga.Label(t("win_edit_notes_label"), style=Pack(width=120, font_size=13, color=Theme.TEXT_PRIMARY)))
+        row_notes.add(self.input_notes)
+        box.add(row_notes)
 
         # Proxy Settings
         box.add(self.switch_proxy)
@@ -258,6 +271,7 @@ class CloneEditWindow(toga.Window):
             language=lang,
             display_name=getattr(self.record, "display_name", None),
             injection_strategy=getattr(self.record, "injection_strategy", "auto"),
+            notes=self.input_notes.value.strip(),
         )
         return updated
 

@@ -25,6 +25,7 @@ class CloneRecord:
     language: str = "system"
     display_name: str | None = None
     injection_strategy: str = "auto"
+    notes: str = ""
 
 
 import contextlib
