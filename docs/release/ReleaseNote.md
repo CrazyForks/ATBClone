@@ -2,6 +2,26 @@
 
 # ATBClone Release Notes
 
+## [v2.3.0] - 2026-09-23
+
+### 🔄 Sidebar Update Error Formatting & Zero-Shift Layout
+- **Prevented Vertical Layout Jitter**:
+  - Completely revamped the sidebar update feedback mechanism to eliminate jarring vertical layout shifts caused by long, multiline error strings when network or update checks fail.
+  - Replaced wrapping labels with fixed-height, native Cocoa single-line labels configured with `NSLineBreakByTruncatingTail` to guarantee immutable sidebar dimensions.
+  - Introduced an intelligent error parser (`format_update_error`) that maps complex network and HTTP exceptions into concise, localized single-line statuses (e.g., Timeout, Network Error, HTTP status codes).
+  - Added an automated 5-second timer to smoothly dismiss transient error messages and restore the sidebar to a clean resting state.
+
+### 🌐 Comprehensive Multilingual Error Messages
+- **Localized Update Feedback**:
+  - Added 4 dedicated update error keys across all 9 supported languages (`update_error_short`, `update_error_timeout`, `update_error_network`, `update_error_http`).
+
+### 🧪 Test Suite Expansion & Quality Assurance
+- **Expanded Coverage**:
+  - Added comprehensive test suites covering update error parsing, Cocoa truncation, and auto-dismissal (`test_sidebar_update.py`, `test_i18n_update_keys.py`).
+  - Automated test suite expanded to **659 tests** with a 100% pass rate.
+
+---
+
 ## [v2.2.1] - 2026-09-23
 
 ### 🛡️ Electron & Chromium Helper Preservation & Mojo IPC Stability

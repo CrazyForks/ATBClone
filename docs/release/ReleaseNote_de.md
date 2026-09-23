@@ -2,6 +2,26 @@
 
 # ATBClone Versionshinweise (Release Notes)
 
+## [v2.3.0] - 2026-09-23
+
+### 🔄 Einzeilige Update-Fehleranzeige in der Seitenleiste & stabiles Layout
+- **Verhinderung von vertikalen Layout-Verschiebungen**:
+  - Überarbeitung des Feedback-Mechanismus bei der Update-Prüfung: Verhindert, dass lange mehrzeilige Fehlermeldungen bei Netzwerkfehlern oder Timeouts die Seitenleiste unschön nach oben aufblähen.
+  - Verwendung nativer Cocoa-Labels mit `NSLineBreakByTruncatingTail` (Kürzung am Zeilenende) und fester Höhe für unveränderliche Seitenleisten-Abmessungen.
+  - Intelligenter Fehler-Parser (`format_update_error`), der komplexe Netzwerk- und HTTP-Ausnahmen in prägnante, lokalisierte Einzeiler (z. B. Zeitüberschreitung, Netzwerkfehler, HTTP-Statuscodes) übersetzt.
+  - Automatische Ausblendung der Fehlermeldung nach 5 Sekunden, um die Seitenleiste stets aufgeräumt zu halten.
+
+### 🌐 Vollständige mehrsprachige Fehlerbeschriftungen
+- **Lokalisierung in allen 9 Sprachen**:
+  - 4 neue lokalisierte Schlüssel für Update-Fehler (`update_error_short`, `update_error_timeout`, `update_error_network`, `update_error_http`) integriert.
+
+### 🧪 Erweiterte Testsuite & Qualitätssicherung
+- **Umfassende Abdeckung**:
+  - Neue Tests für Fehler-Parsing, Einzeilen-Abschneidung und automatische Ausblendung hinzugefügt (`test_sidebar_update.py`, `test_i18n_update_keys.py`).
+  - Testsuite auf **659 automatisierte Tests** (100% Erfolgsquote) erweitert.
+
+---
+
 ## [v2.2.1] - 2026-09-23
 
 ### 🛡️ Schutz von Electron- & Chromium-Helper-Prozessen & Mojo-IPC-Stabilität

@@ -2,6 +2,26 @@
 
 # Notas de la versión de ATBClone (Release Notes)
 
+## [v2.3.0] - 2026-09-23
+
+### 🔄 Formato de error de actualización en una línea y estabilidad de la barra lateral
+- **Prevención de desajustes verticales en el diseño**:
+  - Reestructuración completa del sistema de información de comprobación de actualizaciones: evita que mensajes de error largos y multilínea deformen la barra lateral ante fallos de conexión o tiempos de espera.
+  - Implementación de etiquetas nativas Cocoa con truncamiento final (`NSLineBreakByTruncatingTail`) y altura fija para asegurar dimensiones estables en la barra lateral.
+  - Analizador de errores inteligente (`format_update_error`) que convierte excepciones de red y HTTP complejas en mensajes concisos y localizados en una sola línea (tiempo de espera agotado, error de red, códigos HTTP).
+  - Temporizador de 5 segundos para limpiar automáticamente el mensaje de error y mantener una interfaz limpia.
+
+### 🌐 Soporte multilingüe completo para mensajes de error
+- **Cobertura en los 9 idiomas**:
+  - Incorporadas 4 nuevas claves de traducción dedicadas a errores de actualización (`update_error_short`, `update_error_timeout`, `update_error_network`, `update_error_http`).
+
+### 🧪 Ampliación de la suite de pruebas y calidad
+- **Cobertura de pruebas**:
+  - Incorporadas pruebas unitarias sobre el formateo de errores, el truncamiento y el temporizador de limpieza (`test_sidebar_update.py`, `test_i18n_update_keys.py`).
+  - Conjunto de pruebas ampliado a **659 pruebas automáticas** con un 100% de aprobados.
+
+---
+
 ## [v2.2.1] - 2026-09-23
 
 ### 🛡️ Protección de procesos helper en Electron/Chromium y estabilidad de Mojo IPC
