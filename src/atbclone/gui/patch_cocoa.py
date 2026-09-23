@@ -102,6 +102,29 @@ def configure_cocoa_wrapping_label(native_label: Any, selectable: bool = True) -
         pass
 
 
+def configure_cocoa_single_line_label(native_label: Any, selectable: bool = False) -> None:
+    """Configure an NSTextField to be strictly single-line with tail ellipsis truncation."""
+    if sys.platform != "darwin" or native_label is None:
+        return
+    try:
+        cell = getattr(native_label, "cell", None)
+        if cell is not None:
+            if hasattr(cell, "setWraps_"):
+                cell.setWraps_(False)
+            if hasattr(cell, "setLineBreakMode_"):
+                cell.setLineBreakMode_(4)  # NSLineBreakByTruncatingTail
+            if hasattr(cell, "setScrollable_"):
+                cell.setScrollable_(False)
+            if hasattr(cell, "setSelectable_"):
+                cell.setSelectable_(selectable)
+        if hasattr(native_label, "setMaximumNumberOfLines_"):
+            native_label.setMaximumNumberOfLines_(1)
+        if hasattr(native_label, "setUsesSingleLineMode_"):
+            native_label.setUsesSingleLineMode_(True)
+    except Exception:
+        pass
+
+
 def configure_cocoa_multiline_text_view(native_scroll_view: Any, font_size: float = 12.5, readonly: bool = False) -> None:
     """Configure an NSTextView inside an NSScrollView for crisp typography, selection, and readonly support."""
     if sys.platform != "darwin" or native_scroll_view is None:

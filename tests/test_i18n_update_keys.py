@@ -15,6 +15,10 @@ REQUIRED_KEYS = [
     "update_done_title",
     "update_done_msg",
     "update_error",
+    "update_error_short",
+    "update_error_timeout",
+    "update_error_network",
+    "update_error_http",
 ]
 
 
@@ -32,4 +36,9 @@ def test_update_formatted_strings():
     assert "v1.6.0" in t("update_already_latest", ver="1.6.0")
     assert "45%" in t("update_downloading", pct=45)
     assert "Network error" in t("update_error", err="Network error")
+    assert "网络超时" in t("update_error_timeout")
+    assert "网络连接异常" in t("update_error_network")
+    assert "404" in t("update_error_http", code=404)
+    assert "检查更新失败" in t("update_error_short")
     set_language(None)
+

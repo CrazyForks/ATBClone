@@ -1,7 +1,9 @@
 import asyncio
 import os
+import re
 import webbrowser
 from typing import Callable, Dict
+import requests
 import toga
 from toga.style import Pack
 from toga.style.pack import COLUMN, ROW, CENTER, HIDDEN, VISIBLE
@@ -9,12 +11,45 @@ from atbclone import __version__
 from atbclone.core.i18n import t
 from atbclone.core.logger import get_logger
 from atbclone.core.resources import get_app_icon_path, get_cmder_icon_path
-from atbclone.gui.components.wrapping_label import WrappingLabel
 from atbclone.gui.services.update_service import UpdateService
 from atbclone.gui.theme import Theme
-from atbclone.gui.patch_cocoa import configure_cocoa_sidebar_active, configure_cocoa_card
+from atbclone.gui.patch_cocoa import (
+    configure_cocoa_sidebar_active,
+    configure_cocoa_card,
+    configure_cocoa_single_line_label,
+)
 
 logger = get_logger("gui.sidebar")
+
+
+def format_update_error(exc: Exception) -> str:
+    """Format an update check exception into a concise, localized, single-line error message."""
+    exc_str = str(exc).lower()
+
+    # 1. Timeout detection
+    if "timeout" in exc_str or "timed out" in exc_str:
+        return t("update_error_timeout")
+
+    # 2. Connection / DNS / Network error detection
+    network_keywords = ("connection", "nodename", "servname", "dns", "network", "socket", "unreachable")
+    if any(k in exc_str for k in network_keywords):
+        return t("update_error_network")
+
+    # 3. HTTP error detection (e.g. HTTP 404, 500, 502)
+    resp = getattr(exc, "response", None)
+    status_code = getattr(resp, "status_code", None)
+    if status_code:
+        return t("update_error_http", code=status_code)
+    if isinstance(exc, (requests.HTTPError, requests.exceptions.HTTPError)) or "httperror" in type(exc).__name__.lower():
+        m = re.search(r"\b([45]\d{2})\b", exc_str)
+        if m:
+            return t("update_error_http", code=m.group(1))
+    m = re.search(r"\b(?:http\s+|status\s+|error\s+)([45]\d{2})\b", exc_str)
+    if m:
+        return t("update_error_http", code=m.group(1))
+
+    # 4. Fallback to concise error message
+    return t("update_error_short")
 
 
 class SidebarNav(toga.Box):
@@ -106,11 +141,16 @@ class SidebarNav(toga.Box):
         )
         self.bottom_box.add(self.progress_bar)
 
-        # Update status feedback label: wrapping label to prevent horizontal overflow
-        self.lbl_update_status = WrappingLabel(
+        # Update status feedback label: single-line fixed height to prevent vertical layout shifts
+        self.lbl_update_status = toga.Label(
             "",
-            style=Pack(font_size=11, color=Theme.TEXT_MUTED, margin_top=2),
+            style=Pack(font_size=11, color=Theme.TEXT_MUTED, margin_top=2, height=18),
         )
+        try:
+            native_lbl = getattr(getattr(self.lbl_update_status, "_impl", None), "native", None)
+            configure_cocoa_single_line_label(native_lbl)
+        except Exception:
+            pass
         self.bottom_box.add(self.lbl_update_status)
 
         self.add(self.bottom_box)
@@ -282,8 +322,19 @@ class SidebarNav(toga.Box):
             logger.exception("Update error")
             self.progress_bar.stop()
             self.progress_bar.style.visibility = HIDDEN
-            self.lbl_update_status.text = t("update_error", err=str(e))
+            err_msg = format_update_error(e)
+            self.lbl_update_status.text = err_msg
             self.btn_check_update.enabled = True
+
+            async def _auto_clear_err():
+                await asyncio.sleep(5)
+                if self.lbl_update_status.text == err_msg:
+                    self.lbl_update_status.text = ""
+
+            try:
+                asyncio.create_task(_auto_clear_err())
+            except RuntimeError:
+                pass
 
     def _create_select_handler(self, key: str):
         return lambda widget: self.select_item(key)

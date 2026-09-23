@@ -23,7 +23,7 @@ def test_settings_view_no_longer_has_update_widgets(toga_app):
 
 
 def test_sidebar_update_widgets_exist(toga_app):
-    """SidebarNav must contain update button, progress bar, and wrapping status label."""
+    """SidebarNav must contain update button, progress bar, and status label."""
     set_language("zh")
     sidebar = SidebarNav(on_select=lambda k: None)
     assert hasattr(sidebar, "btn_check_update")
@@ -31,7 +31,7 @@ def test_sidebar_update_widgets_exist(toga_app):
     assert hasattr(sidebar, "lbl_update_status")
 
     assert sidebar.btn_check_update.text == t("settings_btn_check_update")
-    assert isinstance(sidebar.lbl_update_status, WrappingLabel)
+    assert isinstance(sidebar.lbl_update_status, toga.Label)
     assert sidebar.lbl_update_status.text == ""
     assert str(sidebar.progress_bar.style.visibility) == str(HIDDEN)
     set_language(None)
@@ -63,7 +63,6 @@ def test_sidebar_on_check_update_failure(toga_app):
         await sidebar.on_check_update(sidebar.btn_check_update)
 
         assert "❌" in sidebar.lbl_update_status.text
-        assert "Network offline" in sidebar.lbl_update_status.text
         assert sidebar.btn_check_update.enabled is True
         assert str(sidebar.progress_bar.style.visibility) == str(HIDDEN)
 
