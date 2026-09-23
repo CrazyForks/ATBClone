@@ -1172,7 +1172,23 @@ CHATGPT_HOOK_EOF
     def _build_process_name_cmd(task: CloneTask, main_binary: Path) -> str:
         """Rename real Mach-O processes, retaining aliases for hardcoded helper paths."""
         rel_plist = getattr(task.source, "relative_plist_path", Path("Contents/Info.plist"))
-        args = shlex.join([str(task.dest_path), task.clone_name, str(main_binary), str(rel_plist)])
+        is_chromium = (
+            (getattr(task.recipe, "app_type", "") or "").lower() in ("chromium", "electron")
+            or (task.dest_path / "Contents/Frameworks/Electron Framework.framework").exists()
+            or (task.dest_path / "Contents/Frameworks/QQNT.framework").exists()
+            or (task.dest_path / "Contents/Frameworks/Chromium Embedded Framework.framework").exists()
+            or (task.dest_path / "Contents/Resources/app.asar").exists()
+            or (task.dest_path / "Contents/Resources/electron.asar").exists()
+            or (task.dest_path / "Contents/Resources/app/application.asar").exists()
+            or bool(list(task.dest_path.glob("Contents/Frameworks/*Helper*.app")))
+        )
+        args = shlex.join([
+            str(task.dest_path),
+            task.clone_name,
+            str(main_binary),
+            str(rel_plist),
+            "1" if is_chromium else "0",
+        ])
         return f"python3 - {args} << 'PROCESS_NAMES_PY'\n" + textwrap.dedent(r'''
             import os
             import plistlib
@@ -1183,6 +1199,17 @@ CHATGPT_HOOK_EOF
 
             app, name, main = Path(sys.argv[1]), sys.argv[2], Path(sys.argv[3])
             rel_plist_str = sys.argv[4] if len(sys.argv) > 4 else "Contents/Info.plist"
+            is_chromium = (
+                (sys.argv[5] == "1") if len(sys.argv) > 5 else False
+            ) or (
+                (app / "Contents/Frameworks/Electron Framework.framework").exists()
+                or (app / "Contents/Frameworks/QQNT.framework").exists()
+                or (app / "Contents/Frameworks/Chromium Embedded Framework.framework").exists()
+                or (app / "Contents/Resources/app.asar").exists()
+                or (app / "Contents/Resources/electron.asar").exists()
+                or (app / "Contents/Resources/app/application.asar").exists()
+                or bool(list(app.glob("Contents/Frameworks/*Helper*.app")))
+            )
             root_plist = app / rel_plist_str
             if not root_plist.is_file():
                 root_plist = app / "Contents/Info.plist"
@@ -1229,16 +1256,29 @@ CHATGPT_HOOK_EOF
             moves, plists = {}, []
             walk_dir = app / "Contents" if (app / "Contents").is_dir() else app
             for directory, _, files in os.walk(walk_dir, followlinks=False):
+                dir_path = Path(directory)
+                if is_chromium:
+                    parts = dir_path.parts
+                    if "Frameworks" in parts or "Resources" in parts or "PlugIns" in parts:
+                        continue
+                    if any("Helper" in part for part in parts):
+                        continue
                 for filename in files:
-                    path = Path(directory) / filename
+                    path = dir_path / filename
                     if path.is_symlink() or not path.is_file():
                         continue
                     if filename == "Info.plist":
-                        plists.append(path)
+                        if not is_chromium or path == root_plist:
+                            plists.append(path)
+                        continue
                     try:
                         if not os.access(path, os.X_OK) or not is_executable(path):
                             continue
                     except Exception:
+                        continue
+                    # For Chromium/Electron, ONLY rename root main binary and entry launcher.
+                    # All secondary binaries, nested sub-apps, and helpers must remain untampered.
+                    if is_chromium and path != main and path != entry:
                         continue
                     new_name = name if path == main else name + ("-Launcher" if path == entry else "-" + filename)
                     target = path.with_name(new_name)

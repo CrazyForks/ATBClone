@@ -91,9 +91,25 @@ class AppProber:
         bid_lower = bundle_id.lower()
         fw_lower = [f.lower() for f in frameworks]
 
-        # 1. Electron detection (Framework or bundle ID)
-        if any("electron" in f for f in fw_lower) or any(
-            k in bid_lower for k in ["electron", "vscode", "com.microsoft.vscode", "slack", "discord", "lark", "notion"]
+        # 1. Electron detection (Framework, bundle ID, or asar bundle structures)
+        app_p = Path(app_path).expanduser().resolve() if app_path else None
+        has_electron_fingerprint = False
+        if app_p and app_p.is_dir():
+            has_electron_fingerprint = (
+                (app_p / "Contents/Frameworks/QQNT.framework").is_dir()
+                or (app_p / "Contents/Frameworks/Electron Framework.framework").is_dir()
+                or (app_p / "Contents/Resources/app.asar").is_file()
+                or (app_p / "Contents/Resources/electron.asar").is_file()
+                or (app_p / "Contents/Resources/app/application.asar").is_file()
+            )
+
+        if (
+            any("electron" in f or "qqnt" in f for f in fw_lower)
+            or any(
+                k in bid_lower
+                for k in ["electron", "vscode", "com.microsoft.vscode", "slack", "discord", "lark", "notion", "com.tencent.qq"]
+            )
+            or has_electron_fingerprint
         ):
             return "electron"
 

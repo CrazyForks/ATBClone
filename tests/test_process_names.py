@@ -207,3 +207,87 @@ def test_process_names_respects_relative_plist_path(tmp_path):
     assert updated_plist["CFBundleExecutable"] == "WrappedClone"
     assert (inner_macos / "WrappedClone").is_file()
 
+
+def test_electron_helpers_in_frameworks_preserved(bundle):
+    """Ensure Electron/Chromium helper bundles in Frameworks and Resources are not renamed."""
+    task, macos = bundle
+    task.clone_name = "QQClone"
+    task.recipe.app_type = "electron"
+    original = macos / "Original"
+
+    helper_app = task.dest_path / "Contents/Frameworks/QQ Helper.app"
+    helper_macos = helper_app / "Contents/MacOS"
+    helper_macos.mkdir(parents=True)
+    shutil.copy2(original, helper_macos / "QQ Helper")
+    helper_plist = helper_app / "Contents/Info.plist"
+    helper_plist.write_bytes(plistlib.dumps({
+        "CFBundleIdentifier": "com.tencent.qq.helper",
+        "CFBundleExecutable": "QQ Helper",
+        "CFBundlePackageType": "APPL",
+    }))
+
+    res_plugin_app = task.dest_path / "Contents/Resources/app/Plugin.app"
+    res_plugin_macos = res_plugin_app / "Contents/MacOS"
+    res_plugin_macos.mkdir(parents=True)
+    shutil.copy2(original, res_plugin_macos / "Plugin")
+    res_plugin_plist = res_plugin_app / "Contents/Info.plist"
+    res_plugin_plist.write_bytes(plistlib.dumps({
+        "CFBundleIdentifier": "com.tencent.qq.plugin",
+        "CFBundleExecutable": "Plugin",
+        "CFBundlePackageType": "APPL",
+    }))
+
+    # Nested sub-app (e.g. QQEXGuild.app inside Contents/MacOS/)
+    nested_app = macos / "QQEXGuild.app"
+    nested_macos = nested_app / "Contents/MacOS"
+    nested_macos.mkdir(parents=True)
+    shutil.copy2(original, nested_macos / "QQEXGuild")
+    nested_plist = nested_app / "Contents/Info.plist"
+    nested_plist.write_bytes(plistlib.dumps({
+        "CFBundleIdentifier": "com.tencent.qq.guild",
+        "CFBundleExecutable": "QQEXGuild",
+        "CFBundlePackageType": "APPL",
+    }))
+    nested_helper = nested_app / "Contents/Frameworks/QQEXGuild Helper.app/Contents/MacOS"
+    nested_helper.mkdir(parents=True)
+    shutil.copy2(original, nested_helper / "QQEXGuild Helper")
+    nested_helper_plist = nested_app / "Contents/Frameworks/QQEXGuild Helper.app/Contents/Info.plist"
+    nested_helper_plist.write_bytes(plistlib.dumps({
+        "CFBundleIdentifier": "com.tencent.qq.guild.helper",
+        "CFBundleExecutable": "QQEXGuild Helper",
+        "CFBundlePackageType": "APPL",
+    }))
+
+    script = HardCloneEngine._build_process_name_cmd(task, original)
+    res = subprocess.run(["/bin/bash", "-ec", script], capture_output=True, text=True, check=False)
+    assert res.returncode == 0
+
+    # Main binary renamed
+    assert (macos / "QQClone").is_file()
+    assert (macos / "Original").is_symlink()
+
+    # Electron helper in Frameworks MUST NOT be renamed
+    assert (helper_macos / "QQ Helper").is_file()
+    assert not (helper_macos / "QQ Helper").is_symlink()
+    assert not (helper_macos / "QQClone-QQ Helper").exists()
+
+    # Electron helper Info.plist MUST NOT be modified
+    data = plistlib.loads(helper_plist.read_bytes())
+    assert data["CFBundleExecutable"] == "QQ Helper"
+
+    # Resources plugin MUST NOT be renamed
+    assert (res_plugin_macos / "Plugin").is_file()
+    assert not (res_plugin_macos / "Plugin").is_symlink()
+    assert not (res_plugin_macos / "QQClone-Plugin").exists()
+    plugin_data = plistlib.loads(res_plugin_plist.read_bytes())
+    assert plugin_data["CFBundleExecutable"] == "Plugin"
+
+    # Nested sub-app and its helpers MUST NOT be renamed
+    assert (nested_macos / "QQEXGuild").is_file()
+    assert not (nested_macos / "QQEXGuild").is_symlink()
+    assert (nested_helper / "QQEXGuild Helper").is_file()
+    assert not (nested_helper / "QQEXGuild Helper").is_symlink()
+    assert plistlib.loads(nested_plist.read_bytes())["CFBundleExecutable"] == "QQEXGuild"
+    assert plistlib.loads(nested_helper_plist.read_bytes())["CFBundleExecutable"] == "QQEXGuild Helper"
+
+

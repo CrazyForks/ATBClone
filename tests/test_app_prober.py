@@ -142,7 +142,15 @@ def test_detect_app_type_chromium(tmp_path: Path):
 
 def test_detect_app_type_electron(tmp_path: Path):
     assert AppProber.detect_app_type(tmp_path, bundle_id="com.microsoft.VSCode") == "electron"
+    assert AppProber.detect_app_type(tmp_path, bundle_id="com.tencent.qq") == "electron"
     assert AppProber.detect_app_type(tmp_path, frameworks=["Electron Framework.framework"]) == "electron"
+    assert AppProber.detect_app_type(tmp_path, frameworks=["QQNT.framework"]) == "electron"
+
+    # Test asar fingerprint in bundle
+    app_with_asar = tmp_path / "AppWithAsar.app"
+    (app_with_asar / "Contents/Resources").mkdir(parents=True)
+    (app_with_asar / "Contents/Resources/app.asar").touch()
+    assert AppProber.detect_app_type(app_with_asar) == "electron"
 
 
 def test_detect_app_type_firefox(tmp_path: Path):
