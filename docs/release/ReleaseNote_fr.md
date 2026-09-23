@@ -2,6 +2,30 @@
 
 # Notes de publication d'ATBClone (Release Notes)
 
+## [v2.2.1] - 2026-09-23
+
+### 🛡️ Préservation des processus helpers Electron/Chromium et stabilité Mojo IPC
+- **Résolution des boucles de plantage (Crash Loops) des processus enfants**:
+  - Correction d'un problème critique où le renommage binaire des clones matériels modifiait les applications helpers et sous-applications imbriquées, rompant les communications Chromium Mojo IPC et ports Mach dans des applications telles que QQ/QQNT, VS Code et Slack.
+  - Portée de renommage strictement limitée pour les architectures Chromium/Electron : seuls l'exécutable principal (`CFBundleExecutable`) et le lanceur d'entrée sont renommés.
+  - Préservation intégrale de tous les bundles helpers (`*Helper*.app`), plug-ins et sous-applications imbriquées (ex. `QQEXGuild.app`) dans `Frameworks`, `Resources` et `PlugIns`.
+
+### 🔍 Détection multicouche des architectures Electron et Chromium
+- **Amélioration de l'analyse d'application**:
+  - Mise à niveau d'`AppProber` pour reconnaître `QQNT.framework`, les variantes d'archives asar (`app.asar`, `electron.asar`, `application.asar`) et les modèles de bundles helpers.
+  - Vérification d'exécution double dans le script du moteur de clonage via un drapeau `is_chromium` et une inspection structurelle.
+
+### 📐 Documentation d'architecture et enregistrements ADR
+- **Formalisation des règles de conception**:
+  - Ajout de `CONTEXT.md` à la racine et de l'ADR `0001-process-aliasing-scope-and-helper-preservation.md` documentant les limites d'alias de processus et la préservation de l'IPC.
+
+### 🧪 Assurance qualité et suite de tests
+- **Tests unitaires dédiés**:
+  - Ajout de tests couvrant la préservation des helpers et la détection de QQNT/asar (`test_process_names.py`, `test_app_prober.py`).
+  - Suite de tests portée à **649 tests automatisés** avec un taux de réussite de 100%.
+
+---
+
 ## [v2.2.0] - 2026-09-22
 
 ### 📝 Notes de clone et recherche avec filtrage instantané

@@ -2,6 +2,30 @@
 
 # Notas de la versión de ATBClone (Release Notes)
 
+## [v2.2.1] - 2026-09-23
+
+### 🛡️ Protección de procesos helper en Electron/Chromium y estabilidad de Mojo IPC
+- **Resolución de bucles de cierre inesperado (Crash Loops) en subprocesos**:
+  - Corrección de un fallo crítico por el cual el renombrado de binarios en clones duros modificaba aplicaciones helper y subaplicaciones anidadas, rompiendo la comunicación Chromium Mojo IPC y puertos Mach en aplicaciones como QQ/QQNT, VS Code y Slack.
+  - Alcance de renombrado estrictamente acotado para arquitecturas Chromium/Electron: únicamente se renombran el binario principal raíz (`CFBundleExecutable`) y el lanzador de entrada.
+  - Conservación íntegra de todos los paquetes helper (`*Helper*.app`), complementos y subaplicaciones anidadas (ej. `QQEXGuild.app`) en `Frameworks`, `Resources` y `PlugIns`.
+
+### 🔍 Detección multicapa de arquitecturas Electron y Chromium
+- **Análisis de aplicaciones mejorado**:
+  - Actualización de `AppProber` para reconocer `QQNT.framework`, variantes de paquetes asar (`app.asar`, `electron.asar`, `application.asar`) y patrones de paquetes helper.
+  - Verificación dual en tiempo de ejecución en el motor de clonación mediante flags `is_chromium` e inspección de directorios.
+
+### 📐 Documentación de arquitectura y registros ADR
+- **Invariantes del sistema formalizados**:
+  - Añadidos `CONTEXT.md` en la raíz y el ADR `0001-process-aliasing-scope-and-helper-preservation.md` para documentar los límites de alias de procesos y la integridad del IPC.
+
+### 🧪 Aseguramiento de la calidad y pruebas automáticas
+- **Suite de pruebas ampliada**:
+  - Incorporadas pruebas unitarias dedicadas a la preservación de helpers y la detección de QQNT/asar (`test_process_names.py`, `test_app_prober.py`).
+  - Conjunto de pruebas ampliado a **649 pruebas automáticas** con un 100% de aprobados.
+
+---
+
 ## [v2.2.0] - 2026-09-22
 
 ### 📝 Notas en clones y filtrado de búsqueda instantáneo

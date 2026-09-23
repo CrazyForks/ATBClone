@@ -2,6 +2,30 @@
 
 # ATBClone 릴리즈 노트 (Release Notes)
 
+## [v2.2.1] - 2026-09-23
+
+### 🛡️ Electron 및 Chromium 헬퍼 프로세스 보존 및 Mojo IPC 안정성 강화
+- **하드 복제본의 자식 프로세스 무한 충돌(Crash Loop) 문제 해결**:
+  - 하드 복제본 생성 시 프로세스 이름 변경 로직이 내부 헬퍼 앱(Helper App)과 중첩 하위 앱까지 변경하여, QQ/QQNT, VS Code, Slack 등 앱의 Chromium Mojo IPC 및 Mach 포트 통신이 단절되던 중대한 문제를 수정했습니다.
+  - Electron/Chromium 아키텍처의 리네이밍 범위를 엄격히 축소: 최상위 메인 실행 파일(`CFBundleExecutable`) 및 진입 런처만 변경되도록 제한했습니다.
+  - `Frameworks`, `Resources`, `PlugIns` 하위의 모든 헬퍼 번들(`*Helper*.app`), 플러그인, 중첩 하위 앱(예: `QQEXGuild.app`)의 바이너리와 `Info.plist`를 완전히 원형 그대로 보존합니다.
+
+### 🔍 다층 Electron 및 Chromium 아키텍처 핑거프린팅 감지
+- **앱 감지 엔진 대폭 강화**:
+  - `AppProber`에 `QQNT.framework`, 다양한 asar 아카이브(`app.asar`, `electron.asar`, `application.asar`) 및 헬퍼 번들 패턴에 대한 자동 인식 로직을 추가했습니다.
+  - 엔진 스크립트 실행 시 `is_chromium` 플래그 및 런타임 파일 트리 구조를 통한 이중 검증 방어 체계를 구축했습니다.
+
+### 📐 아키텍처 결정 기록(ADR) 문서화
+- **핵심 시스템 설계 원칙 정립**:
+  - 루트 경로에 `CONTEXT.md` 및 `docs/adr/0001-process-aliasing-scope-and-helper-preservation.md`를 추가하여 프로세스 별칭 범위와 헬퍼 보호에 관한 설계 표준을 명문화했습니다.
+
+### 🧪 품질 보증 및 자동화 테스트 확장
+- **테스트 케이스 추가**:
+  - 헬퍼 프로세스 보존 및 QQNT/asar 감지에 대한 전용 단위 테스트를 보강했습니다(`test_process_names.py`, `test_app_prober.py`).
+  - 전체 자동화 테스트 스위트를 **649개**(통과율 100%)로 확장했습니다.
+
+---
+
 ## [v2.2.0] - 2026-09-22
 
 ### 📝 복제본 메모 기능 및 퍼지 검색 필터링

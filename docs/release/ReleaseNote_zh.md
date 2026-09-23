@@ -2,6 +2,30 @@
 
 # ATBClone 更新日志 (Release Notes)
 
+## [v2.2.1] - 2026-09-23
+
+### 🛡️ Electron 与 Chromium 辅助进程保护与 Mojo IPC 稳定性加固
+- **解决硬链接分身子进程崩溃循环（Crash Loop）**：
+  - 修复硬链接克隆在重命名独立进程名时，误将内部辅助程序（Helper App）和嵌套子应用重命名，导致 QQ / QQNT、VS Code、Slack 等应用的 Chromium Mojo IPC 及 Mach 端口通信中断的严重问题。
+  - 严格收敛 Electron / Chromium 架构的重命名边界：仅重命名顶层主程序（`CFBundleExecutable`）及引导启动器（Entry Launcher）。
+  - 全面豁免 `Frameworks`、`Resources`、`PlugIns` 下的所有辅助进程包（`*Helper*.app`）、插件及嵌套子应用（如 `QQEXGuild.app`），保持其二进制文件与 `Info.plist` 原貌不变。
+
+### 🔍 多层级 Electron 与 Chromium 架构指纹精准嗅探
+- **探测引擎全面升级**：
+  - `AppProber` 新增对 `QQNT.framework`、多种 asar 归档（`app.asar`、`electron.asar`、`application.asar`）以及辅助包文件模式的自动特征识别。
+  - 在克隆引擎执行脚本中注入 `is_chromium` 标志与即时文件树结构探测，提供双重兜底保障。
+
+### 📐 架构规范沉淀与 ADR 决策记录
+- **系统核心设计原则确立**：
+  - 建立根目录 `CONTEXT.md` 及 `docs/adr/0001-process-aliasing-scope-and-helper-preservation.md`，明确记录进程别名边界与辅助程序保护的设计决策。
+
+### 🧪 质量保障与自动化测试扩充
+- **测试覆盖更完备**：
+  - 新增辅助进程保护机制与 QQNT/asar 指纹识别的专项单元测试（`test_process_names.py`、`test_app_prober.py`）。
+  - 自动化测试用例扩充至 **649 项**，保持 100% 全部通过。
+
+---
+
 ## [v2.2.0] - 2026-09-22
 
 ### 📝 分身备注备忘与多维模糊搜索

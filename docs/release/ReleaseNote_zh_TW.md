@@ -2,6 +2,30 @@
 
 # ATBClone 更新日誌 (Release Notes)
 
+## [v2.2.1] - 2026-09-23
+
+### 🛡️ Electron 與 Chromium 輔助行程保護與 Mojo IPC 穩定性加固
+- **解決硬連結分身子行程崩潰循環（Crash Loop）**：
+  - 修復硬連結克隆在重新命名獨立行程名稱時，誤將內部輔助程式（Helper App）和巢狀子應用程式重新命名，導致 QQ / QQNT、VS Code、Slack 等應用程式的 Chromium Mojo IPC 及 Mach 連接埠通訊中斷的嚴重問題。
+  - 嚴格收斂 Electron / Chromium 架構的重新命名邊界：僅重新命名頂層主程式（`CFBundleExecutable`）及引導啟動器（Entry Launcher）。
+  - 全面豁免 `Frameworks`、`Resources`、`PlugIns` 下的所有輔助行程套件（`*Helper*.app`）、外掛程式及巢狀子應用程式（如 `QQEXGuild.app`），保持其二進位檔案與 `Info.plist` 原貌不變。
+
+### 🔍 多層級 Electron 與 Chromium 架構特徵精準嗅探
+- **探測引擎全面升級**：
+  - `AppProber` 新增對 `QQNT.framework`、多種 asar 封存檔（`app.asar`、`electron.asar`、`application.asar`）以及輔助套件檔案模式的自動特徵識別。
+  - 在克隆引擎執行指令碼中注入 `is_chromium` 旗標與即時檔案樹結構探測，提供雙重防護機制。
+
+### 📐 架構規範沉澱與 ADR 決策記錄
+- **系統核心設計原則確立**：
+  - 建立根目錄 `CONTEXT.md` 及 `docs/adr/0001-process-aliasing-scope-and-helper-preservation.md`，明確記錄行程別名邊界與輔助程式保護的設計決策。
+
+### 🧪 品質保障與自動化測試擴充
+- **測試覆蓋更完備**：
+  - 新增輔助行程保護機制與 QQNT/asar 特徵識別的專項單元測試（`test_process_names.py`、`test_app_prober.py`）。
+  - 自動化測試案例擴充至 **649 項**，保持 100% 全部通過。
+
+---
+
 ## [v2.2.0] - 2026-09-22
 
 ### 📝 分身備忘備註與多維模糊搜尋

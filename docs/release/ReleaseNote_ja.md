@@ -2,6 +2,30 @@
 
 # ATBClone リリースノート (Release Notes)
 
+## [v2.2.1] - 2026-09-23
+
+### 🛡️ Electron / Chromium ヘルパープロセスの保護と Mojo IPC の安定化
+- **ハードクローンにおける子プロセスのクラッシュループ解消**:
+  - ハードクローン作成時の実行バイナリ名変更処理において、ヘルパーアプリ（Helper App）やネストされた子アプリが誤ってリネームされ、QQ / QQNT、VS Code、Slack などの Chromium Mojo IPC および Mach ポート通信が破綻していた問題を修正。
+  - Electron / Chromium アプリケーションに対するリネーム範囲を厳格に制限：ルートのメインバイナリ（`CFBundleExecutable`）および起動ランチャーのみをリネーム対象に限定。
+  - `Frameworks`、`Resources`、`PlugIns` 配下のすべてのヘルパーバンドル（`*Helper*.app`）、プラグイン、ネストされた子アプリ（`QQEXGuild.app` など）のバイナリおよび `Info.plist` を完全保護。
+
+### 🔍 Electron / Chromium アーキテクチャの多層フィンガープリント検出
+- **検出精度の強化**:
+  - `AppProber` において、`QQNT.framework`、各種 asar アーカイブ（`app.asar`、`electron.asar`、`application.asar`）、ヘルパーバンドルパターンの自動認識を追加。
+  - クローンエンジンのシェルスクリプト実行時に `is_chromium` フラグおよびファイルツリー構造の二重検証を実施。
+
+### 📐 アーキテクチャ決定記録（ADR）の整備
+- **設計原則の文書化**:
+  - リポジトリルートに `CONTEXT.md` および `docs/adr/0001-process-aliasing-scope-and-helper-preservation.md` を追加し、プロセスエイリアススコープとヘルパー保護の設計方針を明文化。
+
+### 🧪 包括的なテスト拡充と品質保証
+- **網羅的なテスト追加**:
+  - ヘルパー保護および QQNT / asar 検出に関する単体テストを追加（`test_process_names.py`、`test_app_prober.py`）。
+  - 自動テストスイートを計 **649 件**（合格率 100%）に拡大。
+
+---
+
 ## [v2.2.0] - 2026-09-22
 
 ### 📝 クローンメモ機能とあいまい検索フィルタリング

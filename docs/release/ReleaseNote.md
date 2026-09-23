@@ -2,6 +2,30 @@
 
 # ATBClone Release Notes
 
+## [v2.2.1] - 2026-09-23
+
+### 🛡️ Electron & Chromium Helper Preservation & Mojo IPC Stability
+- **Resolved Child Process Crash Loops in Hard Clones**:
+  - Fixed a critical issue where aggressive binary renaming in hard clones altered helper apps and nested sub-apps, breaking Chromium Mojo IPC and Mach port communications in apps like QQ/QQNT, VS Code, and Slack.
+  - Strictly scoped process renaming for Chromium/Electron architectures: only the root executable (`CFBundleExecutable`) and the entry launcher are aliased.
+  - All helper bundles (`*Helper*.app`), internal plugins, and nested sub-applications (e.g. `QQEXGuild.app`) in `Frameworks`, `Resources`, and `PlugIns` remain completely untampered.
+
+### 🔍 Multi-Layer Electron & Chromium Architecture Detection
+- **Enhanced App Probing & Fingerprinting**:
+  - Upgraded `AppProber.detect_app_type` to recognize `QQNT.framework`, asar package variants (`app.asar`, `electron.asar`, `application.asar`), and helper bundle patterns.
+  - Introduced dual-check runtime verification in `HardCloneEngine` via explicit flags and filesystem inspection to prevent misclassification.
+
+### 📐 Architecture Documentation & Decision Records
+- **Formalized System Invariants**:
+  - Added root `CONTEXT.md` and ADR `0001-process-aliasing-scope-and-helper-preservation.md` documenting process aliasing boundaries and IPC preservation rules.
+
+### 🧪 Comprehensive Quality Assurance
+- **Expanded Test Suite**:
+  - Added specialized unit tests for helper preservation and QQNT/asar detection (`test_process_names.py`, `test_app_prober.py`).
+  - Automated test suite expanded to **649 tests** with a 100% pass rate.
+
+---
+
 ## [v2.2.0] - 2026-09-22
 
 ### 📝 Clone Notes & Instant Search Filtering

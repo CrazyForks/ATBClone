@@ -2,6 +2,30 @@
 
 # ATBClone Versionshinweise (Release Notes)
 
+## [v2.2.1] - 2026-09-23
+
+### 🛡️ Schutz von Electron- & Chromium-Helper-Prozessen & Mojo-IPC-Stabilität
+- **Behebung von Absturzschleifen (Crash Loops) bei Kindprozessen**:
+  - Behebung eines kritischen Fehlers, bei dem das Umbenennen von Binärdateien in Hard Clones auch interne Helper-Apps und verschachtelte Sub-Apps veränderte, was die Chromium-Mojo-IPC- und Mach-Port-Kommunikation bei Anwendungen wie QQ/QQNT, VS Code und Slack zerstörte.
+  - Strikt eingegrenzter Bereich für Umbenennungen unter Chromium/Electron: Nur die Haupt-Binärdatei (`CFBundleExecutable`) und der Entry-Launcher werden umbenannt.
+  - Vollständiger Schutz aller Helper-Bundles (`*Helper*.app`), Plug-ins und verschachtelten Sub-Apps (z. B. `QQEXGuild.app`) in `Frameworks`, `Resources` und `PlugIns`.
+
+### 🔍 Mehrschichtige Electron- & Chromium-Architekturerkennung
+- **Erweitertes App-Probing**:
+  - Aktualisierung von `AppProber`, um `QQNT.framework`, verschiedene asar-Archive (`app.asar`, `electron.asar`, `application.asar`) und Helper-Bundle-Muster zuverlässig zu erkennen.
+  - Zusätzliche Laufzeitüberprüfung im Klon-Engine-Skript über `is_chromium`-Flags und Verzeichnisprüfungen.
+
+### 📐 Architektur-Dokumentation & ADR-Entscheidungen
+- **Dokumentierte Systeminvarianten**:
+  - Bereitstellung von `CONTEXT.md` im Projektstamm sowie ADR `0001-process-aliasing-scope-and-helper-preservation.md` zur Dokumentation der Grenzen von Prozess-Aliasing und Helper-Schutz.
+
+### 🧪 Umfassende Qualitätssicherung & Testsuite
+- **Erweiterte Tests**:
+  - Spezifische Unit-Tests für den Helper-Schutz und die Erkennung von QQNT/asar hinzugefügt (`test_process_names.py`, `test_app_prober.py`).
+  - Testsuite auf **649 automatisierte Tests** (100% Erfolgsquote) erweitert.
+
+---
+
 ## [v2.2.0] - 2026-09-22
 
 ### 📝 Klon-Notizen & Sofortige Filtersuche
